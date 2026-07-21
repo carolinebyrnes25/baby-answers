@@ -82,6 +82,26 @@
   .bl b{font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--accent)}
   .bl p{margin:4px 0 0; font-size:14.5px}
   .bl p+p{margin-top:6px}
+  /* Browse / table-of-contents */
+  .sec{background:var(--card); border:1px solid var(--line); border-radius:15px; margin-bottom:10px; box-shadow:var(--shadow); overflow:hidden}
+  .sec-h{width:100%; display:flex; align-items:center; gap:10px; padding:14px 16px; background:none; border:0; cursor:pointer; color:var(--ink); font:inherit; text-align:left}
+  .sec-h .nm{font-size:15px; font-weight:600; letter-spacing:-.01em; flex:1}
+  .sec-h .ct{font-size:12px; color:var(--muted); background:var(--bg); border:1px solid var(--line); border-radius:999px; padding:1px 8px}
+  .chev{color:var(--muted); font-size:18px; line-height:1; transition:transform .18s ease}
+  .sec.open>.sec-h .chev, .item.open>.item-h .chev{transform:rotate(90deg)}
+  .sec-body{display:none; border-top:1px solid var(--line)}
+  .sec.open>.sec-body{display:block}
+  .item{border-top:1px solid var(--line)}
+  .item:first-child{border-top:0}
+  .item-h{width:100%; display:flex; align-items:center; gap:9px; padding:11px 16px; background:none; border:0; cursor:pointer; color:var(--ink); font:inherit; text-align:left}
+  .item-h .q{flex:1; font-size:14px; line-height:1.4}
+  .item.open>.item-h .q{font-weight:600}
+  .item-body{display:none; padding:2px 16px 6px}
+  .item.open>.item-body{display:block}
+  .item-body ul{margin:6px 0 10px; padding-left:19px}
+  .item-body li{margin:5px 0}
+  .sec-h:focus-visible, .item-h:focus-visible{outline:2px solid var(--peri); outline-offset:-2px}
+  @media (prefers-reduced-motion: reduce){ .chev{transition:none} }
   .empty{text-align:center; color:var(--muted); padding:48px 16px}
   .empty .big{font-size:40px}
   footer{border-top:1px solid var(--line); padding:18px 0 30px; color:var(--muted); font-size:12px}
@@ -194,37 +214,62 @@ var CRIB = [{"topic":"Decisions","q":"How does Cribsheet say to make these decis
     return out;
   }
 
+  function answerHTML(it){
+    var body='<ul>'+it.body.map(function(b){return '<li>'+hl(b)+'</li>';}).join('')+'</ul>';
+    var bl=it.bl.length?'<div class="bl"><b>Bottom line</b>'+it.bl.map(function(b){return '<p>'+hl(b)+'</p>';}).join('')+'</div>':'';
+    return body+bl;
+  }
+
+  var TOPIC_ORDER=['Sleep','Feeding','Routine','Soothing','Health','Newborn','Development','Decisions','Parenting'];
+  function topicRank(t){ var i=TOPIC_ORDER.indexOf(t); return i<0?99:i; }
+
   function render(){
     var groups=terms(query);
     // highlight only the meaningful words the user actually typed (+ stems), not synonyms
     HLW=query.toLowerCase().split(/[^a-z0-9]+/).filter(function(w){return w&&!STOP[w]&&w.length>1;})
         .reduce(function(a,w){var s=stem(w); return s&&s!==w?a.concat([w,s]):a.concat([w]);},[])
         .map(function(t){return t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');});
-    var list=items.filter(function(it){ return srcFilter==='all'||it.src===srcFilter; });
-    if(groups.length){
-      list.forEach(function(it){
-        var hit=0, score=0;
-        groups.forEach(function(g){
-          var inTitle=g.some(function(v){return it.q.toLowerCase().indexOf(v)>=0;});
-          var inTags=g.some(function(v){return it.hay.indexOf(v)>=0;});
-          if(inTags){ hit++; score+=inTitle?3:1; }
-        });
-        it._hit=hit; it._score=score;
+    var pool=items.filter(function(it){ return srcFilter==='all'||it.src===srcFilter; });
+
+    if(!groups.length){ renderBrowse(pool); return; }   // no search query -> table of contents
+
+    // search mode: ranked, answers shown
+    pool.forEach(function(it){
+      var hit=0, score=0;
+      groups.forEach(function(g){
+        var inTitle=g.some(function(v){return it.q.toLowerCase().indexOf(v)>=0;});
+        var inTags=g.some(function(v){return it.hay.indexOf(v)>=0;});
+        if(inTags){ hit++; score+=inTitle?3:1; }
       });
-      list=list.filter(function(it){return it._hit>0;});
-      list.sort(function(a,b){ return (b._hit-a._hit)||(b._score-a._score); });
-    }
-    countEl.textContent = list.length + (list.length===1?' answer':' answers') + (query?(' for “'+query+'”'):'');
+      it._hit=hit; it._score=score;
+    });
+    var list=pool.filter(function(it){return it._hit>0;}).sort(function(a,b){ return (b._hit-a._hit)||(b._score-a._score); });
+    countEl.textContent = list.length + (list.length===1?' answer':' answers') + ' for “'+query+'”';
     if(!list.length){
       resEl.innerHTML='<div class="empty"><div class="big">🍼</div><p>No match yet. Try key words like <b>sleep</b>, <b>feeding</b>, <b>swaddle</b>, <b>fever</b>, or <b>vaccines</b>.</p></div>';
       return;
     }
     resEl.innerHTML=list.map(function(it){
-      var body='<ul>'+it.body.map(function(b){return '<li>'+hl(b)+'</li>';}).join('')+'</ul>';
-      var bl=it.bl.length?'<div class="bl"><b>Bottom line</b>'+it.bl.map(function(b){return '<p>'+hl(b)+'</p>';}).join('')+'</div>':'';
       return '<article class="card"><div class="top"><span class="badge '+it.src+'">'+it.label+'</span>'+
              '<span class="topic">'+esc(it.topic)+'</span></div>'+
-             '<h2>'+hl(it.q)+'</h2>'+body+bl+'</article>';
+             '<h2>'+hl(it.q)+'</h2>'+answerHTML(it)+'</article>';
+    }).join('');
+  }
+
+  function renderBrowse(pool){
+    var byTopic={};
+    pool.forEach(function(it){ (byTopic[it.topic]=byTopic[it.topic]||[]).push(it); });
+    var topics=Object.keys(byTopic).sort(function(a,b){ return topicRank(a)-topicRank(b) || a.localeCompare(b); });
+    countEl.textContent='Browse '+pool.length+' guides by topic — tap a section, then a title';
+    resEl.innerHTML=topics.map(function(t){
+      var rows=byTopic[t].map(function(it){
+        return '<div class="item"><button class="item-h" type="button" aria-expanded="false">'+
+               '<span class="q">'+esc(it.q)+'</span><span class="badge '+it.src+'">'+it.label+'</span>'+
+               '<span class="chev">›</span></button><div class="item-body">'+answerHTML(it)+'</div></div>';
+      }).join('');
+      return '<section class="sec"><button class="sec-h" type="button" aria-expanded="false">'+
+             '<span class="nm">'+esc(t)+'</span><span class="ct">'+byTopic[t].length+'</span><span class="chev">›</span></button>'+
+             '<div class="sec-body">'+rows+'</div></section>';
     }).join('');
   }
 
@@ -235,6 +280,14 @@ var CRIB = [{"topic":"Decisions","q":"How does Cribsheet say to make these decis
     srcFilter=b.getAttribute('data-src');
     [].forEach.call(chipsEl.children,function(c){ c.setAttribute('aria-pressed', c===b?'true':'false'); });
     render();
+  });
+
+  // expand/collapse table-of-contents sections and titles
+  resEl.addEventListener('click',function(e){
+    var sh=e.target.closest('.sec-h');
+    if(sh){ var open=sh.parentNode.classList.toggle('open'); sh.setAttribute('aria-expanded', open?'true':'false'); return; }
+    var ih=e.target.closest('.item-h');
+    if(ih){ var o=ih.parentNode.classList.toggle('open'); ih.setAttribute('aria-expanded', o?'true':'false'); }
   });
 
   render();
