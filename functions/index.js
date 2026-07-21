@@ -37,7 +37,9 @@ const ALLOW = [
 // The site allowed to call this endpoint (CORS).
 const APP_ORIGIN = 'https://carolinebyrnes25.github.io';
 
-const DEFAULT_MODELS = { gemini: 'gemini-flash-latest', anthropic: 'claude-sonnet-4-5', openai: 'gpt-4.1' };
+// gemini-2.0-flash is a fast, cheap, NON-thinking model — no thinking-token
+// truncation and no thinkingConfig needed (unlike the 2.5 "flash-latest" alias).
+const DEFAULT_MODELS = { gemini: 'gemini-2.0-flash', anthropic: 'claude-sonnet-4-5', openai: 'gpt-4.1' };
 const MAX_TOKENS = 1200;
 
 exports.askBaby = onRequest(
@@ -91,10 +93,7 @@ async function callProvider(provider, model, key, system, messages) {
       body: JSON.stringify({
         system_instruction: { parts: [{ text: system }] },
         contents: contents,
-        // gemini-flash-latest is a "thinking" model; its internal reasoning counts against
-        // maxOutputTokens and can truncate the visible answer. Disable thinking for direct,
-        // complete answers (thinkingBudget: 0). Harmless if the model doesn't support it.
-        generationConfig: { maxOutputTokens: MAX_TOKENS, thinkingConfig: { thinkingBudget: 0 } },
+        generationConfig: { maxOutputTokens: MAX_TOKENS },
       }),
     });
     const j = await r.json();
