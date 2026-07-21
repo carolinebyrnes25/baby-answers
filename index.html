@@ -422,7 +422,7 @@ var AI_CONFIG = {
   function updateSub(){
     if(!aiReady){ substatus.innerHTML='AI answers aren’t set up yet — asking shows the closest guides. (See DEPLOY.md to enable them.)'; return; }
     if(typeof firebase==='undefined'||!authObj){ substatus.textContent='Sign-in couldn’t load — you can still browse the guides below.'; return; }
-    if(!authUser){ substatus.innerHTML='<button class="link" id="siL">Sign in</button> (you &amp; Luke) for AI answers from your guides.'; var b=document.getElementById('siL'); if(b)b.addEventListener('click',signIn); return; }
+    if(!authUser){ substatus.innerHTML='<button class="link" id="siL">Sign in</button> for AI answers from your guides.'; var b=document.getElementById('siL'); if(b)b.addEventListener('click',signIn); return; }
     substatus.innerHTML='AI on · '+esc(authUser.email||'')+' · <button class="link" id="soL">sign out</button>'; var s=document.getElementById('soL'); if(s)s.addEventListener('click',signOut);
   }
 
@@ -443,7 +443,7 @@ var AI_CONFIG = {
     showAnswer();
     var top=retrieve(text,6);
     var banner = reason==='signin'
-      ? '<div class="aihint"><b>Sign in for a synthesized answer.</b> <button class="link" id="siL2">Sign in</button> (you &amp; Luke). Meanwhile, the closest guides:</div>'
+      ? '<div class="aihint"><b>Sign in for a synthesized answer.</b> <button class="link" id="siL2">Sign in</button>. Meanwhile, the closest guides:</div>'
       : '<div class="aihint"><b>AI answers aren’t turned on yet.</b> See DEPLOY.md to enable synthesized answers. Closest guides for “'+esc(text)+'”:</div>';
     var body = top.length? top.map(card).join('') : '<div class="empty"><div class="big">🍼</div><p>No match — try different words, or browse the topics below.</p></div>';
     convo.innerHTML=tools()+banner+body; wireBack();

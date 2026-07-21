@@ -50,7 +50,8 @@ The **Ask** box synthesizes answers via a deployed Firebase backend.
   `apiKey` is a public client id — safe to commit; the Gemini key is NOT in the repo).
 - **Access:** Google sign-in enabled; `carolinebyrnes25.github.io` is an authorized domain. Runtime
   ALLOW list (in `functions/index.js`): `carolinebyrnes25@gmail.com`, `luke.f.byrnes@gmail.com`,
-  `byrnesfam25@gmail.com`. Caroline signs into the app as **carolinebyrnes25** (on the list).
+  `byrnesfam25@gmail.com`, `hlbyrnes@aol.com`, `elise.byrnes@gmail.com`. Caroline signs into the app
+  as **carolinebyrnes25** (on the list).
 - **Deploys are automated via CI** (`.github/workflows/deploy-functions.yml`). Any push to `main`
   that touches `functions/**` (or a manual "Deploy Cloud Function" run / `run_workflow` dispatch)
   redeploys `askBaby`. Auth = a Google **service account scoped to only the baby-answers project**,

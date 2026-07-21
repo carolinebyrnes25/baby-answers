@@ -32,6 +32,8 @@ const ALLOW = [
   'carolinebyrnes25@gmail.com',
   'luke.f.byrnes@gmail.com',
   'byrnesfam25@gmail.com',
+  'hlbyrnes@aol.com',
+  'elise.byrnes@gmail.com',
 ];
 
 // The site allowed to call this endpoint (CORS).

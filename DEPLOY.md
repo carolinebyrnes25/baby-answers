@@ -21,8 +21,8 @@ Everything here is **self-contained in this repo** and **separate from any other
   Manager) — **not** in the repo.
 - **Auth:** Google sign-in enabled; `carolinebyrnes25.github.io` is an Authorized Domain. Runtime
   **allow-list** (in `functions/index.js` → `ALLOW`): `carolinebyrnes25@gmail.com`,
-  `luke.f.byrnes@gmail.com`, `byrnesfam25@gmail.com`. Caroline signs into the app as
-  `carolinebyrnes25`.
+  `luke.f.byrnes@gmail.com`, `byrnesfam25@gmail.com`, `hlbyrnes@aol.com`,
+  `elise.byrnes@gmail.com`. Caroline signs into the app as `carolinebyrnes25`.
 - **App wiring:** `AI_CONFIG` in `index.html` holds the endpoint URL + the Firebase **web** config
   (public client id — safe to commit).
 
