@@ -108,12 +108,23 @@
   .item-body li.schr{list-style:none; display:flex; gap:10px; margin:3px 0 3px -19px}
   .item-body li.schr .shtime{flex:0 0 auto; min-width:88px; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap}
   .item-body li.schr .shdet{flex:1; min-width:0}
-  .msg.ai p{margin:0 0 8px}
-  .msg.ai p:last-child{margin-bottom:0}
-  .msg.ai .subh{font-weight:700; font-size:13px; margin:12px 0 4px}
-  .msg.ai .schr{display:flex; gap:10px; margin:3px 0}
-  .msg.ai .schr .shtime{flex:0 0 auto; min-width:88px; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap}
-  .msg.ai .schr .shdet{flex:1; min-width:0}
+  /* AI answer panel — connected under the ask box, one expanding card */
+  .answer{background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); padding:4px 16px 14px; margin:2px 0 10px}
+  .answer .q{font-weight:700; font-size:15.5px; line-height:1.4; color:var(--ink); margin:13px 0 9px}
+  .answer .q:not(:first-child){border-top:1px solid var(--line); padding-top:14px; margin-top:16px}
+  .answer .a{font-size:14.5px; line-height:1.55}
+  .answer .a p{margin:0 0 9px}
+  .answer .a p:last-child{margin-bottom:0}
+  .answer .a ul.abul{margin:8px 0 10px; padding-left:20px}
+  .answer .a ul.abul li{margin:5px 0}
+  .answer .a .subh{font-weight:700; font-size:13px; margin:12px 0 5px}
+  .answer .a .schr{display:flex; gap:10px; margin:3px 0}
+  .answer .a .schr .shtime{flex:0 0 auto; min-width:88px; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap}
+  .answer .a .schr .shdet{flex:1; min-width:0}
+  .answer .a .bl{margin:12px 0 2px}
+  .answer .a .ainote{font-size:12px; color:var(--muted); line-height:1.45; margin:12px 0 0; padding-top:9px; border-top:1px dashed var(--line)}
+  .answer .asrc{margin-top:11px; padding-top:9px; border-top:1px solid var(--line); font-size:11.5px; color:var(--muted)}
+  .answer .asrc a{color:inherit; text-decoration:underline}
   .sec-h:focus-visible, .item-h:focus-visible{outline:2px solid var(--peri); outline-offset:-2px}
   @media (prefers-reduced-motion: reduce){ .chev{transition:none} }
   .empty{text-align:center; color:var(--muted); padding:48px 16px}
@@ -290,19 +301,28 @@ var AI_CONFIG = {
     if(m){ return '<li class="schr"><span class="shtime">'+esc(m[1])+'</span><span class="shdet">'+esc(m[2])+'</span></li>'; }
     return '<li>'+esc(b)+'</li>';
   }
-  // Render an AI answer, turning "§ " sub-headers and "TIME — detail" lines into
-  // the same styled schedule layout used by the guide cards.
+  // Escape, then turn **bold** into <strong>.
+  function inlineMD(s){ return esc(s).replace(/\*\*([^*]+?)\*\*/g,'<strong>$1</strong>'); }
+  // Render an AI answer: markdown-ish bullets/bold, "§ " sub-headers, "TIME — detail"
+  // schedule rows, a boxed "Bottom line:", and a small trailing "Note:" caveat.
   function aiHTML(text){
-    var out='', para=[];
-    function flush(){ if(para.length){ out+='<p>'+para.join('<br>')+'</p>'; para=[]; } }
+    var out='', para=[], bul=[];
+    function flushP(){ if(para.length){ out+='<p>'+para.join('<br>')+'</p>'; para=[]; } }
+    function flushB(){ if(bul.length){ out+='<ul class="abul">'+bul.map(function(b){return '<li>'+b+'</li>';}).join('')+'</ul>'; bul=[]; } }
+    function flush(){ flushP(); flushB(); }
     String(text).split('\n').forEach(function(ln){
       var t=ln.trim();
       if(t===''){ flush(); return; }
-      if(t.indexOf('§ ')===0){ flush(); out+='<div class="subh">'+esc(t.slice(2))+'</div>'; return; }
+      if(t.indexOf('§ ')===0){ flush(); out+='<div class="subh">'+inlineMD(t.slice(2))+'</div>'; return; }
+      var blm=t.match(/^\**\s*bottom line\s*[:*]*\s*(.*)$/i);
+      if(blm){ flush(); out+='<div class="bl"><b>Bottom line</b><p>'+inlineMD(blm[1])+'</p></div>'; return; }
+      var nm=t.match(/^\**\s*note\s*[:*]*\s*(.*)$/i);
+      if(nm){ flush(); out+='<div class="ainote">'+inlineMD(nm[1])+'</div>'; return; }
       var body=t.replace(/^[-*•]\s+/,'');
-      var m=body.match(SCHED_RE);
-      if(m){ flush(); out+='<div class="schr"><span class="shtime">'+esc(m[1])+'</span><span class="shdet">'+esc(m[2])+'</span></div>'; return; }
-      para.push(esc(body));
+      var sm=body.match(SCHED_RE);
+      if(sm){ flush(); out+='<div class="schr"><span class="shtime">'+esc(sm[1])+'</span><span class="shdet">'+inlineMD(sm[2])+'</span></div>'; return; }
+      if(/^[-*•]\s+/.test(t)){ flushP(); bul.push(inlineMD(body)); return; }
+      flushB(); para.push(inlineMD(t));
     });
     flush();
     return out;
@@ -325,14 +345,19 @@ var AI_CONFIG = {
     var top=retrieve(q,8); if(!top.length) top=items.slice(0,6);
     return top.map(function(it){ return '### '+it.topic+' — '+it.q+' ['+it.label+']\n'+it.body.map(function(b){return '- '+b;}).join('\n')+(it.bl&&it.bl.length?('\nBottom line: '+it.bl.join(' ')):''); }).join('\n\n');
   }
+  // List the actual guide entries the answer drew from (Moms on Call book paraphrases
+  // and Cribsheet), linking to the free handout PDF when one exists for that entry.
   function sourceLinks(top){
-    var files={}, cribs=false, out=[];
-    top.forEach(function(it){ if(it.src==='crib') cribs=true; guidesFor(it).forEach(function(g){ files[g.file]=g.name; }); });
-    Object.keys(files).forEach(function(f){ out.push('<a href="sources/'+f+'" target="_blank" rel="noopener">'+esc(files[f])+'</a>'); });
-    if(cribs) out.push('Cribsheet (Emily Oster)');
+    var seen={}, out=[];
+    top.slice(0,5).forEach(function(it){
+      var key=it.label+'|'+it.q; if(seen[key]) return; seen[key]=1;
+      var label=esc(it.label)+' — '+esc(it.q);
+      var g=guidesFor(it)[0];
+      out.push(g ? '<a href="sources/'+g.file+'" target="_blank" rel="noopener">'+label+'</a>' : label);
+    });
     return out;
   }
-  var BASE_SYS="You are Baby Answers, a warm, concise assistant for parents. Answer ONLY using the SOURCE MATERIAL below (from the free Moms on Call guides and Emily Oster's Cribsheet). If the answer isn't in those sources, say you don't have it in your sources and suggest asking their pediatrician — don't guess or invent. Be practical and brief: a few sentences or short bullets. Never give medication doses. For anything urgent, or any fever in a baby under 3 months, tell them to call their doctor now. When Moms on Call (routine) and Cribsheet (evidence) differ, you may note both. Add a one-line 'Bottom line' when useful. FORMAT: when you give a daily schedule or routine, put each time step on its own line in the exact form 'TIME — activity' (e.g. '7 am — wake + milk', '12:30 pm — nap'); use an em dash (—) between the time and the activity, and use 12-hour times with am/pm (or 'noon'). Prefix a section label with '§ ' on its own line (e.g. '§ 4–8 weeks'). Keep any non-schedule explanation as normal sentences.";
+  var BASE_SYS="You are Baby Answers, a warm, concise assistant for parents. Answer ONLY using the SOURCE MATERIAL below (paraphrased guidance from the Moms on Call books/guides and Emily Oster's Cribsheet). Never give medication doses. For anything urgent, or any fever in a baby under 3 months, tell them to call their doctor now. When Moms on Call (routine) and Cribsheet (evidence) differ, you may note both.\n\nSTYLE — start with the actual answer. Do NOT open with disclaimers, apologies, or phrases like 'I don't have that in my sources' or 'I suggest asking your pediatrician' at the top. Be practical and brief.\n\nFORMATTING (follow exactly):\n- For lists, put each item on its own line starting with '- ' (a hyphen and a space). Do not use '*' for bullets.\n- You may bold a short lead-in label with double asterisks, e.g. '- **Infants:** short catnaps are common.'\n- For a daily schedule/routine, put each time step on its own line as 'TIME — activity' (e.g. '7 am — wake + milk', '12:30 pm — nap'), using an em dash (—) and 12-hour times with am/pm (or 'noon'). Prefix a section label with '§ ' on its own line (e.g. '§ 4–8 weeks').\n- If useful, end with one line starting exactly 'Bottom line:' summarizing the key point.\n- If (and only if) a brief safety caveat or 'the sources don't fully cover this — check with your pediatrician' note is needed, put it as the VERY LAST line, starting exactly 'Note:', in one short sentence. Never put such a caveat first.";
 
   var TOPIC_ORDER=['Sleep','Feeding','Routine','Soothing','Health','Safety','Newborn','Development','Toddler','Parenting'];
   function topicRank(t){ var i=TOPIC_ORDER.indexOf(t); return i<0?99:i; }
@@ -375,17 +400,17 @@ var AI_CONFIG = {
 
   // ---- conversation ----
   var chat=[];
-  function bubble(m){
-    if(m.role==='user') return '<div class="msg you">'+esc(m.content)+'</div>';
-    var src=m.srcHTML?'<span class="src">Sources: '+m.srcHTML+'</span>':'';
-    return '<div class="msg ai">'+aiHTML(m.content)+src+'</div>';
+  function turnHTML(m){
+    if(m.role==='user') return '<div class="q">'+esc(m.content)+'</div>';
+    var src=m.srcHTML?'<div class="asrc">Sources: '+m.srcHTML+'</div>':'';
+    return '<div class="a">'+aiHTML(m.content)+src+'</div>';
   }
   function card(it){ return '<article class="card"><div class="top"><span class="badge '+it.src+'">'+it.label+'</span><span class="topic">'+esc(it.topic)+'</span></div><h2>'+esc(it.q)+'</h2>'+answerHTML(it)+srcRow(it)+'</article>'; }
   function showAnswer(){ browseWrap.hidden=true; convo.hidden=false; }
   function showHome(){ chat=[]; convo.hidden=true; convo.innerHTML=''; askStatus.textContent=''; browseWrap.hidden=false; window.scrollTo(0,0); }
   function tools(){ return '<div class="convo-tools"><button type="button" id="backB">↩ Browse guides</button></div>'; }
   function wireBack(){ var bb=document.getElementById('backB'); if(bb) bb.addEventListener('click',showHome); }
-  function renderThread(){ showAnswer(); convo.innerHTML=tools()+chat.map(bubble).join(''); wireBack(); window.scrollTo(0,0); }
+  function renderThread(){ showAnswer(); convo.innerHTML='<div class="answer">'+chat.map(turnHTML).join('')+'</div>'+tools(); wireBack(); window.scrollTo(0,0); }
   function renderFallback(text,reason){
     showAnswer();
     var top=retrieve(text,6);
