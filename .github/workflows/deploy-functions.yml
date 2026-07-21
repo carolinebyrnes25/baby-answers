@@ -16,6 +16,11 @@ on:
 permissions:
   contents: read
 
+# If several deploys are queued, cancel older ones so the newest code wins.
+concurrency:
+  group: deploy-functions
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
