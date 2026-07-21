@@ -1,0 +1,42 @@
+name: Deploy Cloud Function
+
+# Auto-deploys the Baby Answers backend (functions/askBaby) whenever functions/**
+# changes on main, and can be run on demand from the Actions tab. Auth uses a
+# service account scoped to ONLY the baby-answers project, stored as the
+# FIREBASE_SERVICE_ACCOUNT repo secret. The Gemini key (AI_API_KEY) is a Cloud
+# Functions secret already set in the project — it is NOT needed here.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'functions/**'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install function dependencies
+        run: npm install
+        working-directory: functions
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Deploy functions
+        run: firebase deploy --only functions --project baby-answers --non-interactive --force
