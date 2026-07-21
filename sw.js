@@ -1,6 +1,6 @@
 /* Baby Answers service worker — offline support.
    Bump the version string to force phones to pick up new content. */
-const CACHE = 'baby-answers-v7';
+const CACHE = 'baby-answers-v8';
 
 const ASSETS = [
   './',
