@@ -1,6 +1,6 @@
 /* Baby Answers service worker — offline support.
    Bump the version string to force phones to pick up new content. */
-const CACHE = 'baby-answers-v6';
+const CACHE = 'baby-answers-v7';
 
 const ASSETS = [
   './',
@@ -30,6 +30,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
+  if (req.url.endsWith('.pdf')) return; // source PDFs: network-only, don't bloat the cache
 
   // For page navigations, serve the app shell (works offline, falls back to network).
   if (req.mode === 'navigate') {

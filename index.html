@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Baby Answers</title>
-<meta name="description" content="Quick, searchable baby-care answers for 0–6 months, drawn from the Moms on Call guides and Emily Oster's Cribsheet.">
+<meta name="description" content="Quick, searchable baby-care answers from newborn to toddler, drawn from the Moms on Call guides and Emily Oster's Cribsheet.">
 <meta name="theme-color" content="#7c9ef0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0f1420" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.webmanifest">
@@ -134,6 +134,20 @@
   .whoami{display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--muted); padding:2px 2px 4px}
   .whoami button{font:inherit; font-size:12px; background:none; border:0; color:var(--accent); cursor:pointer}
   .disc{font-size:11.5px; color:var(--muted); text-align:center; padding:4px 8px 0}
+  /* Unified ask + source links */
+  .askform{display:flex; gap:8px; align-items:flex-end; margin-top:12px}
+  .askform textarea{flex:1; resize:none; font:inherit; font-size:16px; padding:12px 14px; border-radius:13px; border:1px solid var(--line); background:var(--card); color:var(--ink); box-shadow:var(--shadow); max-height:120px; overflow-y:auto}
+  .askform textarea:focus{outline:2px solid var(--peri); outline-offset:1px; border-color:transparent}
+  .askform button{flex:0 0 auto; font:inherit; font-weight:600; padding:0 18px; height:46px; border:0; border-radius:13px; background:var(--accent); color:#fff; cursor:pointer}
+  .askform button:disabled{opacity:.5; cursor:default}
+  .substatus{font-size:12px; color:var(--muted); margin:9px 2px 0; line-height:1.4}
+  .substatus .link{color:var(--accent); background:none; border:0; font:inherit; font-size:12px; cursor:pointer; padding:0; text-decoration:underline}
+  .browsehdr{font-size:11px; font-weight:700; letter-spacing:.06em; color:var(--muted); text-transform:uppercase; margin:4px 2px 12px}
+  .convo-tools{display:flex; justify-content:flex-end; margin:0 0 8px}
+  .convo-tools button{font:inherit; font-size:12.5px; background:none; border:0; color:var(--accent); cursor:pointer}
+  .srcrow{margin:2px 0 12px; font-size:12px; color:var(--muted); display:flex; gap:6px; flex-wrap:wrap; align-items:center}
+  .srcpill{display:inline-block; font-size:12px; color:var(--accent); text-decoration:none; border:1px solid var(--line); border-radius:999px; padding:2px 9px; background:var(--card)}
+  .msg .src a{color:inherit; text-decoration:underline}
 </style>
 </head>
 <body>
@@ -143,43 +157,32 @@
       <img src="icons/icon-192.png" alt="">
       <div>
         <h1>Baby Answers</h1>
-        <p>0–6 months · Moms on Call + Cribsheet</p>
+        <p>Newborn to toddler · Moms on Call + Cribsheet</p>
       </div>
     </div>
-    <div class="tabs" id="tabs">
-      <button class="tab" type="button" data-mode="guides" aria-pressed="true">Guides</button>
-      <button class="tab" type="button" data-mode="ask" aria-pressed="false">✨ Ask</button>
-    </div>
-    <div id="guidesTop">
-      <div class="search">
-        <span class="mag">⌕</span>
-        <input id="q" type="search" inputmode="search" autocomplete="off" autocapitalize="off"
-               spellcheck="false" placeholder="Search sleep, feeding, fever…" aria-label="Search">
-        <button class="clr" id="clr" aria-label="Clear">×</button>
-      </div>
-      <div class="chips" id="chips">
-        <button class="chip" type="button" data-src="all" aria-pressed="true">All</button>
-        <button class="chip" type="button" data-src="moc" aria-pressed="false">Moms on Call</button>
-        <button class="chip" type="button" data-src="crib" aria-pressed="false">Cribsheet</button>
-      </div>
-    </div>
+    <form class="askform" id="askForm">
+      <textarea id="askInput" rows="1" placeholder="Ask anything — “how long should they sleep?”" aria-label="Ask a question"></textarea>
+      <button type="submit" id="askSend">Ask</button>
+    </form>
+    <div class="substatus" id="substatus"></div>
   </div>
 </header>
 
 <main>
   <div class="wrap">
-    <div id="guidesView">
-      <div class="count" id="count"></div>
+    <div id="convo" class="thread" hidden></div>
+    <div class="askstatus" id="askStatus"></div>
+    <div id="browseWrap">
+      <div class="browsehdr" id="browseHdr">Browse all guides by topic</div>
       <div id="results"></div>
     </div>
-    <div id="askView" hidden></div>
   </div>
 </main>
 
 <footer>
   <div class="wrap">
     <p><b>What this is.</b> A personal quick-reference that summarizes two parenting resources: the free
-      <b>Moms on Call</b> 0–6&nbsp;month guides (routine, sleep &amp; feeding) and chapter takeaways from
+      <b>Moms on Call</b> guides (routine, sleep, feeding, solids, safety &amp; toddler) and chapter takeaways from
       <b>Cribsheet</b> by economist Emily Oster (what the research does and doesn't show).</p>
     <p><b>Not medical advice.</b> It's a memory aid, not a substitute for your pediatrician. For anything
       urgent — or a fever — call your doctor. Always follow current AAP safe-sleep guidance.</p>
@@ -188,7 +191,7 @@
 
 <script>
 /* ---------------- Moms on Call (0–6 months) ---------------- */
-var MOC = [{"topic":"Feeding","q":"How much and how often should my newborn eat?","tags":["feeding","ounces","oz","how much","how often","bottle","formula","breast","hunger","cluster","amount"],"a":["Newborns eat often: roughly every 2.5–3 hours during the day, about 8–12 feeds in 24 hours at first.","Bottle amounts climb quickly: ~1–2 oz per feed in the first days, ~2–3 oz by 2 weeks, ~3–4 oz by 1 month, ~4–6 oz by 2–4 months.","Breastfed: nurse on demand, ~10–20 minutes per side; count wet/dirty diapers and weight gain rather than ounces.","Feed on cues — rooting, hands to mouth, lip-smacking. Crying is a late hunger sign."],"bl":"Full, unhurried daytime feeds every ~3 hours are what set up longer stretches of sleep at night."},{"topic":"Feeding","q":"Feeding guidelines: breast vs bottle, spit-up, and getting a full feed","tags":["feeding","spit up","reflux","burp","full feed","breast","bottle","paced","snacking"],"a":["Aim for full feeds, not snacks — a drowsy baby who takes half a feed wakes hungry in an hour and the whole day unravels.","Burp mid-feed and after. Some spit-up is normal; forceful/projectile vomiting, poor weight gain, or arching in pain is worth a doctor call.","Keep baby a little upright for ~20–30 minutes after eating to ease spit-up.","Whether breast or bottle, keep the daytime rhythm the same so night sleep can consolidate."],"bl":"Protect the full feed. Consistent, complete daytime feeds are the engine behind a predictable day."},{"topic":"Feeding","q":"Growth spurts and cluster feeding","tags":["growth spurt","cluster feeding","hungry","more often","supply","3 weeks","6 weeks"],"a":["Expect hungrier stretches around ~2–3 weeks, ~6 weeks, and ~3 months — baby wants to eat more often for a few days.","Evening 'cluster feeding' (several close feeds before bed) is normal, especially in the early weeks.","For breastfeeding, extra demand for a couple of days is how supply is signaled to increase — it usually settles.","It's temporary. Offer the feeds, then ease back toward the usual spacing as the spurt passes."],"bl":"Sudden extra hunger for a few days is almost always a growth spurt — feed to it; it passes."},{"topic":"Routine","q":"Sample daily routine for a newborn (about 0–6 weeks)","tags":["schedule","routine","newborn","eat wake sleep","wake windows","naps"],"a":["Loop of eat → short awake time → sleep, roughly every 2.5–3 hours around the clock.","Awake windows are tiny — often just 45–60 minutes including the feed. Watch for the first yawn or glazed stare.","Daytime feeds anchored near 7, 10, 1, 4, 7 with a late 'dream feed' around 10–11 pm as you consolidate.","Don't skip daytime feeds to 'bank' sleep — a well-fed day is what earns a longer night stretch."],"bl":"In the newborn weeks the goal is rhythm, not a rigid clock. Full feeds + short wake windows = the foundation."},{"topic":"Routine","q":"Sample daily routine around 2–4 months","tags":["schedule","routine","2 months","3 months","4 months","naps","wake windows"],"a":["Feeds settle to about every 3–3.5 hours, roughly 7, 10:30, 2, 5:30, and a bedtime feed.","Usually 3–4 naps; wake windows stretch to about 1.5–2 hours.","Bedtime moves earlier and more predictable (often ~7–8 pm) with a short, same-every-night routine.","Many babies drop to one (or zero) night feeds in this window as daytime intake grows — follow your pediatrician on night weaning."],"bl":"A consistent early bedtime and predictable feed spacing do more for night sleep than any single trick."},{"topic":"Routine","q":"Sample daily routine around 4–6 months","tags":["schedule","routine","4 months","5 months","6 months","naps","4 month regression"],"a":["Often ~3 naps consolidating toward 2–3; wake windows about 2–2.5 hours.","Feeds roughly every 3.5–4 hours; solids may begin near the end of this window (see 'starting solids').","The '4-month sleep regression' is a real developmental shift — hold the routine, keep the room dark, and it passes.","Keep bedtime early and consistent; an overtired baby fights sleep harder."],"bl":"Consistency beats novelty. When sleep wobbles at 4 months, tighten the routine rather than adding new crutches."},{"topic":"Sleep","q":"The swaddle method — how and when","tags":["swaddle","swaddling","startle","moro","arms","stop swaddling","rolling","sleep sack"],"a":["Swaddle snug around the arms/chest but loose at the hips so legs can bend and frog out (protects the hips).","It muffles the startle (Moro) reflex that jolts newborns awake — a big early win for sleep.","Always swaddle for sleep on the BACK, in a firm flat crib with nothing else in it.","Stop swaddling at the first sign of rolling (often ~8–12 weeks) and switch to a sleep sack with arms free."],"bl":"Snug arms, loose hips, always on the back — and retire the swaddle at the very first hint of rolling."},{"topic":"Sleep","q":"Safe sleep environment","tags":["safe sleep","sids","back to sleep","crib","bassinet","room temperature","empty crib","bed sharing"],"a":["Always place baby on the BACK to sleep, for naps and at night.","Firm, flat surface (crib or bassinet) with a fitted sheet only — no pillows, bumpers, blankets, or stuffed animals.","Room-share (baby's own crib/bassinet in your room) without bed-sharing, per the AAP.","Keep the room comfortably cool (~68–72°F) and dress baby in a sleep sack rather than loose blankets."],"bl":"Back to sleep, bare crib, firm flat surface, cool dark room — the non-negotiables that lower SIDS risk."},{"topic":"Sleep","q":"5 tips for great sleep","tags":["sleep tips","great sleep","white noise","dark room","routine","bedtime","drowsy"],"a":["1) Dark room — genuinely dark, day naps included.","2) White noise — a steady, consistent sound running the whole nap/night (not just to fall asleep).","3) A short, identical bedtime routine so the sequence itself becomes the sleep cue.","4) Full daytime feeds and an age-appropriate schedule so baby isn't hungry or overtired at bedtime.","5) An early, consistent bedtime, and put baby down drowsy-but-awake when you can."],"bl":"Dark + white noise + a repeatable routine + full feeds + early bedtime. Boring and consistent wins."},{"topic":"Sleep","q":"A calm bedtime routine","tags":["bedtime","routine","bath","wind down","evening"],"a":["Keep it short (~20–30 min) and the same every night: e.g., bath or wipe-down → jammies/sleep sack → feed → brief cuddle/song → into the crib.","Dim the lights and lower the energy for the half hour before.","Finish the feed before the crib when you can, so baby isn't dependent on feeding all the way to sleep.","Aim for an early bedtime; overtired babies take longer to settle and wake more."],"bl":"The routine is the cue. Same steps, same order, dim and calm — every single night."},{"topic":"Sleep","q":"Naps and catnaps — how to lengthen them","tags":["naps","catnap","short naps","45 minutes","nap length","overtired","nap schedule"],"a":["Short 30–45 minute 'catnaps' are common in the early months as sleep cycles are still short — they lengthen with age.","Use the same dark room + white noise for naps as at night; a bright, noisy room caps nap length.","Watch wake windows — an overtired baby fights the next nap and sleeps worse, not better.","Protect a consistent nap schedule; predictable daytime sleep supports predictable nights."],"bl":"Treat naps like night sleep — dark, white noise, right wake window. Catnaps stretch out as baby matures."},{"topic":"Soothing","q":"Witching hour / fussy evenings — how to soothe","tags":["witching hour","fussy","crying","colic","soothe","evening","5 s","pacifier"],"a":["Late-afternoon/evening fussiness is extremely common in the early weeks and usually peaks around 6 weeks.","Run through the basics: hungry? tired? needs a burp? overstimulated? a fresh diaper?","Layer soothing: swaddle, side/stomach hold (while awake), shush/white noise, sway, and a pacifier or suck.","Overtiredness makes evenings worse — an earlier bedtime often shrinks the witching hour."],"bl":"Most evening fuss is normal and time-limited. Rule out hunger/tired/gas, then soothe in layers and protect an early bedtime."},{"topic":"Soothing","q":"How much crying is normal — and what is colic?","tags":["crying","colic","normal","inconsolable","rule of 3","purple crying","fussy"],"a":["Crying tends to build over the first weeks and peak around 6–8 weeks, then ease — a normal developmental curve.","'Colic' is the label for a healthy baby crying a lot (often described as >3 hours/day, >3 days/week) with no medical cause.","Work the checklist (hunger, tired, gas, overstimulation) and soothe in layers; it's not something you're doing wrong.","It's okay to put a crying baby down safely on their back and take a few minutes to reset. Never shake a baby."],"bl":"A lot of crying that peaks around 6–8 weeks is usually normal. If you're overwhelmed, put baby down safely and take a break — and call your doctor if anything seems off."},{"topic":"Soothing","q":"Pacifiers, gas, burping and hiccups","tags":["pacifier","gas","burp","burping","hiccups","soothe","suck"],"a":["A pacifier is a great soother and is associated with lower SIDS risk at sleep; if breastfeeding, it's often suggested to wait until nursing is well established (~3–4 weeks).","Burp mid-feed and after; if baby seems gassy, bicycle the legs and give tummy time when awake.","Hiccups are normal and harmless in newborns — they usually pass on their own.","Frantic evening fussing is more often tiredness/overstimulation than gas — check the wake window too."],"bl":"Pacifiers help (and are sleep-safe); burp well and bicycle the legs for gas. Hiccups need no treatment."},{"topic":"Feeding","q":"Night feeds and sleeping longer stretches","tags":["night feeds","dream feed","sleep through","night weaning","longer stretch"],"a":["Longer night stretches are built by day: full feeds, good naps, and an early bedtime.","A late 'dream feed' (~10–11 pm) can push the first long stretch later into the night.","As daytime intake grows, night feeds naturally taper — let your pediatrician guide when to drop them, especially re: weight gain.","Keep night feeds boring: dim, quiet, minimal interaction, straight back down."],"bl":"Feed the day, not the night. Full daytime feeds + early bedtime are what stretch out the night."},{"topic":"Health","q":"How do I know baby is getting enough? (diapers & weight)","tags":["wet diapers","dirty diapers","enough milk","output","weight gain","hydration"],"a":["After the first week, expect ~6+ wet diapers a day and regular stools.","Steady weight gain and a baby who's alert and content when awake are the best signs.","Fewer wet diapers, hard-to-wake lethargy, no tears, or a sunken soft spot are dehydration flags — call the doctor.","Trust the weight checks at visits over the exact ounces or minutes."],"bl":"6+ wet diapers a day + steady weight gain = plenty. Big drops in output warrant a call."},{"topic":"Health","q":"Diaper rash and newborn skin","tags":["diaper rash","skin","dry skin","cradle cap","rash","barrier cream"],"a":["Change wet/dirty diapers promptly and let the area air-dry; a zinc-oxide barrier cream at the first hint of redness helps.","Peeling/dry newborn skin in the first weeks is normal and usually needs nothing.","Cradle cap (scaly scalp) is common and harmless; gentle brushing and a mild wash usually clear it.","A rash that's blistering, weeping, bright and spreading, or comes with fever is worth a doctor call."],"bl":"Most diaper rash clears with frequent changes, air time, and a barrier cream. Fever + rash = call the doctor."},{"topic":"Newborn","q":"First 4 weeks basics: cord, bath, and newborn care","tags":["first weeks","umbilical cord","sponge bath","newborn care","belly button","nails","layers"],"a":["Until the umbilical cord stump falls off (usually 1–2 weeks), stick to sponge baths and keep the stump clean and dry.","Babies don't need daily baths — 2–3 times a week is plenty; a full bath makes a great bedtime-routine anchor once the cord is off.","Newborns run cool — a hat early on, and dress them one light layer more than you'd wear.","Expect lots of sleeping and eating; the first month is about establishing feeds and rhythm, not a strict schedule."],"bl":"Keep the cord dry with sponge baths, don't over-bathe, and focus the first month on feeds and rhythm."},{"topic":"Health","q":"Colds, congestion and sick-day care","tags":["cold","congestion","stuffy","saline","suction","cough","sick","humidifier"],"a":["For a stuffy nose: saline drops + gentle bulb or nasal suction, especially before feeds and sleep; a cool-mist humidifier can help.","Do not give over-the-counter cough/cold medicines to babies — they aren't safe for infants.","Keep feeds up in small, frequent amounts and watch wet diapers for hydration.","Call the doctor for any fever under 3 months (see the fever entry), fast/labored breathing, or poor feeding."],"bl":"Saline + suction + humidifier for congestion; no infant cough/cold meds. Watch breathing, feeding, and fever."},{"topic":"Health","q":"Fever and when to call the doctor","tags":["fever","temperature","call doctor","emergency","100.4","sick","rectal"],"a":["Under 3 months: a rectal temperature of 100.4°F (38°C) or higher is an urgent 'call the doctor / go in now' — don't wait or give medicine first.","Also call promptly for: trouble breathing, refusing to feed, far fewer wet diapers, inconsolable or very hard to wake, or a rash with fever.","Don't give infant fever/pain medicine to a newborn without your pediatrician's direction.","When in doubt about a young baby, call — that's exactly what the after-hours line is for."],"bl":"In a baby under 3 months, 100.4°F rectal = call immediately. For breathing trouble or a baby you can't rouse, seek care now."},{"topic":"Development","q":"Tummy time","tags":["tummy time","development","neck","head control","flat head","play"],"a":["Start from day one with a few minutes at a time, several times a day, while baby is awake and supervised.","It builds neck, shoulder, and core strength and helps prevent flat spots on the head.","Chest-to-chest on a reclined adult counts, as does across your lap, if the floor is a hard sell early on.","Build up gradually toward ~an hour total across the day by around 3–4 months."],"bl":"Little and often, always supervised and awake. Tummy time is 'exercise' that pays off in head control."},{"topic":"Development","q":"What milestones to expect in the first 6 months","tags":["milestones","development","smile","rolling","sitting","cooing","0-6 months","normal range"],"a":["Social smile around ~6 weeks; cooing and more eye contact through 2–3 months.","Better head control and pushing up in tummy time by ~3–4 months; reaching/grabbing and rolling starting ~4–6 months.","Babbling and sitting with support build toward 6 months; ranges are wide and healthy babies vary a lot.","Mention any loss of skills, or no social smile / very little response by ~2–3 months, to your pediatrician."],"bl":"Smiles ~6 wks, rolling ~4–6 mo, sitting-with-support by ~6 mo — but ranges are wide. Flag lost skills or no social smile to your doctor."},{"topic":"Feeding","q":"Starting solids (around 4–6 months)","tags":["solids","introducing solids","first foods","4 months","6 months","allergens","puree","baby led"],"a":["Look for readiness signs, usually around 6 months (and not before 4): good head control, sitting with support, interest in food, and loss of the tongue-thrust reflex.","Milk (breast or formula) stays the main nutrition through the first year — early solids are practice and exposure.","Introduce one new single-ingredient food at a time and wait a couple of days to watch for a reaction.","Purees and soft finger foods (baby-led) both work — offer iron-rich foods, and introduce common allergens early (see Cribsheet on allergens)."],"bl":"Wait for readiness (~6 months), keep milk as the main event, add one food at a time, and don't delay allergens."}];
+var MOC = [{"topic":"Feeding","q":"How much and how often should my newborn eat?","tags":["feeding","ounces","oz","how much","how often","bottle","formula","breast","hunger","cluster","amount"],"a":["Babies up to 12 months need at least 24 oz of breast milk or formula per day, total.","First 2 weeks: about 7–8 feeds/day, each no longer than 45 min, 2–3 oz per feed (maybe an occasional 4).","2–4 weeks: still 7–8 feeds/day, up to 30 min, 3–4 oz per feed (occasionally 5).","4–8 weeks: 6–7 feeds/day, 20–30 min, 4–5 oz per feed (occasionally 6).","2–4 months: 5–7 feeds/day, 15–20 min, 5–6 oz per feed (occasionally 7–8).","4–6 months: 4–5 feeds/day, 12–15 min (up to 20 for breastfed babies), 6–8 oz per feed (occasionally 9), plus baby foods 1–3× a day.","Feed on cues (rooting, hands to mouth); breastfed babies — count wet diapers and weight gain rather than ounces."],"bl":"At least 24 oz/day through 12 months. Amounts climb and feeds space out with age — from ~2–3 oz every ~3 hrs as a newborn to ~6–8 oz, 4–5× a day by 4–6 months."},{"topic":"Feeding","q":"Feeding guidelines: breast vs bottle, spit-up, and getting a full feed","tags":["feeding","spit up","reflux","burp","full feed","breast","bottle","paced","snacking"],"a":["Aim for full feeds, not snacks — a drowsy baby who takes half a feed wakes hungry in an hour and the whole day unravels.","Burp mid-feed and after. Some spit-up is normal; forceful/projectile vomiting, poor weight gain, or arching in pain is worth a doctor call.","Keep baby a little upright for ~20–30 minutes after eating to ease spit-up.","Whether breast or bottle, keep the daytime rhythm the same so night sleep can consolidate."],"bl":"Protect the full feed. Consistent, complete daytime feeds are the engine behind a predictable day."},{"topic":"Feeding","q":"Growth spurts and cluster feeding","tags":["growth spurt","cluster feeding","hungry","more often","supply","3 weeks","6 weeks"],"a":["Expect hungrier stretches around ~2–3 weeks, ~6 weeks, and ~3 months — baby wants to eat more often for a few days.","Evening 'cluster feeding' (several close feeds before bed) is normal, especially in the early weeks.","For breastfeeding, extra demand for a couple of days is how supply is signaled to increase — it usually settles.","It's temporary. Offer the feeds, then ease back toward the usual spacing as the spurt passes."],"bl":"Sudden extra hunger for a few days is almost always a growth spurt — feed to it; it passes."},{"topic":"Routine","q":"Sample daily routine for a newborn (about 0–6 weeks)","tags":["schedule","routine","newborn","eat wake sleep","wake windows","naps"],"a":["Loop of eat → short awake time → sleep, roughly every 2.5–3 hours around the clock.","Awake windows are tiny — often just 45–60 minutes including the feed. Watch for the first yawn or glazed stare.","Daytime feeds anchored near 7, 10, 1, 4, 7 with a late 'dream feed' around 10–11 pm as you consolidate.","Don't skip daytime feeds to 'bank' sleep — a well-fed day is what earns a longer night stretch."],"bl":"In the newborn weeks the goal is rhythm, not a rigid clock. Full feeds + short wake windows = the foundation."},{"topic":"Routine","q":"Sample daily routine around 2–4 months","tags":["schedule","routine","2 months","3 months","4 months","naps","wake windows"],"a":["Feeds settle to about every 3–3.5 hours, roughly 7, 10:30, 2, 5:30, and a bedtime feed.","Usually 3–4 naps; wake windows stretch to about 1.5–2 hours.","Bedtime moves earlier and more predictable (often ~7–8 pm) with a short, same-every-night routine.","Many babies drop to one (or zero) night feeds in this window as daytime intake grows — follow your pediatrician on night weaning."],"bl":"A consistent early bedtime and predictable feed spacing do more for night sleep than any single trick."},{"topic":"Routine","q":"Sample daily routine around 4–6 months","tags":["schedule","routine","4 months","5 months","6 months","naps","4 month regression"],"a":["Often ~3 naps consolidating toward 2–3; wake windows about 2–2.5 hours.","Feeds roughly every 3.5–4 hours; solids may begin near the end of this window (see 'starting solids').","The '4-month sleep regression' is a real developmental shift — hold the routine, keep the room dark, and it passes.","Keep bedtime early and consistent; an overtired baby fights sleep harder."],"bl":"Consistency beats novelty. When sleep wobbles at 4 months, tighten the routine rather than adding new crutches."},{"topic":"Sleep","q":"The swaddle method — how and when","tags":["swaddle","swaddling","startle","moro","arms","stop swaddling","rolling","sleep sack"],"a":["Swaddle snug around the arms/chest but loose at the hips so legs can bend and frog out (protects the hips).","It muffles the startle (Moro) reflex that jolts newborns awake — a big early win for sleep.","Always swaddle for sleep on the BACK, in a firm flat crib with nothing else in it.","Stop swaddling at the first sign of rolling (often ~8–12 weeks) and switch to a sleep sack with arms free."],"bl":"Snug arms, loose hips, always on the back — and retire the swaddle at the very first hint of rolling."},{"topic":"Sleep","q":"Safe sleep environment","tags":["safe sleep","sids","back to sleep","crib","bassinet","room temperature","empty crib","bed sharing"],"a":["Always place baby on the BACK to sleep, for naps and at night.","Firm, flat surface (crib or bassinet) with a fitted sheet only — no pillows, bumpers, blankets, or stuffed animals.","Room-share (baby's own crib/bassinet in your room) without bed-sharing, per the AAP.","Keep the room comfortably cool (~68–72°F) and dress baby in a sleep sack rather than loose blankets."],"bl":"Back to sleep, bare crib, firm flat surface, cool dark room — the non-negotiables that lower SIDS risk."},{"topic":"Sleep","q":"5 tips for great sleep","tags":["sleep tips","great sleep","white noise","dark room","routine","bedtime","drowsy"],"a":["1) Dark room — genuinely dark, day naps included.","2) White noise — a steady, consistent sound running the whole nap/night (not just to fall asleep).","3) A short, identical bedtime routine so the sequence itself becomes the sleep cue.","4) Full daytime feeds and an age-appropriate schedule so baby isn't hungry or overtired at bedtime.","5) An early, consistent bedtime, and put baby down drowsy-but-awake when you can."],"bl":"Dark + white noise + a repeatable routine + full feeds + early bedtime. Boring and consistent wins."},{"topic":"Sleep","q":"A calm bedtime routine","tags":["bedtime","routine","bath","wind down","evening"],"a":["Keep it short (~20–30 min) and the same every night: e.g., bath or wipe-down → jammies/sleep sack → feed → brief cuddle/song → into the crib.","Dim the lights and lower the energy for the half hour before.","Finish the feed before the crib when you can, so baby isn't dependent on feeding all the way to sleep.","Aim for an early bedtime; overtired babies take longer to settle and wake more."],"bl":"The routine is the cue. Same steps, same order, dim and calm — every single night."},{"topic":"Sleep","q":"Naps and catnaps — how to lengthen them","tags":["naps","catnap","short naps","45 minutes","nap length","overtired","nap schedule"],"a":["Short 30–45 minute 'catnaps' are common in the early months as sleep cycles are still short — they lengthen with age.","Use the same dark room + white noise for naps as at night; a bright, noisy room caps nap length.","Watch wake windows — an overtired baby fights the next nap and sleeps worse, not better.","Protect a consistent nap schedule; predictable daytime sleep supports predictable nights."],"bl":"Treat naps like night sleep — dark, white noise, right wake window. Catnaps stretch out as baby matures."},{"topic":"Soothing","q":"Witching hour / fussy evenings — how to soothe","tags":["witching hour","fussy","crying","colic","soothe","evening","5 s","pacifier"],"a":["Late-afternoon/evening fussiness is extremely common in the early weeks and usually peaks around 6 weeks.","Run through the basics: hungry? tired? needs a burp? overstimulated? a fresh diaper?","Layer soothing: swaddle, side/stomach hold (while awake), shush/white noise, sway, and a pacifier or suck.","Overtiredness makes evenings worse — an earlier bedtime often shrinks the witching hour."],"bl":"Most evening fuss is normal and time-limited. Rule out hunger/tired/gas, then soothe in layers and protect an early bedtime."},{"topic":"Soothing","q":"How much crying is normal — and what is colic?","tags":["crying","colic","normal","inconsolable","rule of 3","purple crying","fussy"],"a":["Crying tends to build over the first weeks and peak around 6–8 weeks, then ease — a normal developmental curve.","'Colic' is the label for a healthy baby crying a lot (often described as >3 hours/day, >3 days/week) with no medical cause.","Work the checklist (hunger, tired, gas, overstimulation) and soothe in layers; it's not something you're doing wrong.","It's okay to put a crying baby down safely on their back and take a few minutes to reset. Never shake a baby."],"bl":"A lot of crying that peaks around 6–8 weeks is usually normal. If you're overwhelmed, put baby down safely and take a break — and call your doctor if anything seems off."},{"topic":"Soothing","q":"Pacifiers, gas, burping and hiccups","tags":["pacifier","gas","burp","burping","hiccups","soothe","suck"],"a":["A pacifier is a great soother and is associated with lower SIDS risk at sleep; if breastfeeding, it's often suggested to wait until nursing is well established (~3–4 weeks).","Burp mid-feed and after; if baby seems gassy, bicycle the legs and give tummy time when awake.","Hiccups are normal and harmless in newborns — they usually pass on their own.","Frantic evening fussing is more often tiredness/overstimulation than gas — check the wake window too."],"bl":"Pacifiers help (and are sleep-safe); burp well and bicycle the legs for gas. Hiccups need no treatment."},{"topic":"Feeding","q":"Night feeds and sleeping longer stretches","tags":["night feeds","dream feed","sleep through","night weaning","longer stretch"],"a":["Longer night stretches are built by day: full feeds, good naps, and an early bedtime.","A late 'dream feed' (~10–11 pm) can push the first long stretch later into the night.","As daytime intake grows, night feeds naturally taper — let your pediatrician guide when to drop them, especially re: weight gain.","Keep night feeds boring: dim, quiet, minimal interaction, straight back down."],"bl":"Feed the day, not the night. Full daytime feeds + early bedtime are what stretch out the night."},{"topic":"Health","q":"How do I know baby is getting enough? (diapers & weight)","tags":["wet diapers","dirty diapers","enough milk","output","weight gain","hydration"],"a":["After the first week, expect ~6+ wet diapers a day and regular stools.","Steady weight gain and a baby who's alert and content when awake are the best signs.","Fewer wet diapers, hard-to-wake lethargy, no tears, or a sunken soft spot are dehydration flags — call the doctor.","Trust the weight checks at visits over the exact ounces or minutes."],"bl":"6+ wet diapers a day + steady weight gain = plenty. Big drops in output warrant a call."},{"topic":"Health","q":"Diaper rash and newborn skin","tags":["diaper rash","skin","dry skin","cradle cap","rash","barrier cream"],"a":["Change wet/dirty diapers promptly and let the area air-dry; a zinc-oxide barrier cream at the first hint of redness helps.","Peeling/dry newborn skin in the first weeks is normal and usually needs nothing.","Cradle cap (scaly scalp) is common and harmless; gentle brushing and a mild wash usually clear it.","A rash that's blistering, weeping, bright and spreading, or comes with fever is worth a doctor call."],"bl":"Most diaper rash clears with frequent changes, air time, and a barrier cream. Fever + rash = call the doctor."},{"topic":"Newborn","q":"First 4 weeks basics: cord, bath, and newborn care","tags":["first weeks","umbilical cord","sponge bath","newborn care","belly button","nails","layers"],"a":["Until the umbilical cord stump falls off (usually 1–2 weeks), stick to sponge baths and keep the stump clean and dry.","Babies don't need daily baths — 2–3 times a week is plenty; a full bath makes a great bedtime-routine anchor once the cord is off.","Newborns run cool — a hat early on, and dress them one light layer more than you'd wear.","Expect lots of sleeping and eating; the first month is about establishing feeds and rhythm, not a strict schedule."],"bl":"Keep the cord dry with sponge baths, don't over-bathe, and focus the first month on feeds and rhythm."},{"topic":"Health","q":"Colds, congestion and sick-day care","tags":["cold","congestion","stuffy","saline","suction","cough","sick","humidifier"],"a":["For a stuffy nose: saline drops + gentle bulb or nasal suction, especially before feeds and sleep; a cool-mist humidifier can help.","Do not give over-the-counter cough/cold medicines to babies — they aren't safe for infants.","Keep feeds up in small, frequent amounts and watch wet diapers for hydration.","Call the doctor for any fever under 3 months (see the fever entry), fast/labored breathing, or poor feeding."],"bl":"Saline + suction + humidifier for congestion; no infant cough/cold meds. Watch breathing, feeding, and fever."},{"topic":"Health","q":"Fever and when to call the doctor","tags":["fever","temperature","call doctor","emergency","100.4","sick","rectal"],"a":["Under 3 months: a rectal temperature of 100.4°F (38°C) or higher is an urgent 'call the doctor / go in now' — don't wait or give medicine first.","Also call promptly for: trouble breathing, refusing to feed, far fewer wet diapers, inconsolable or very hard to wake, or a rash with fever.","Don't give infant fever/pain medicine to a newborn without your pediatrician's direction.","When in doubt about a young baby, call — that's exactly what the after-hours line is for."],"bl":"In a baby under 3 months, 100.4°F rectal = call immediately. For breathing trouble or a baby you can't rouse, seek care now."},{"topic":"Development","q":"Tummy time","tags":["tummy time","development","neck","head control","flat head","play"],"a":["Start from day one with a few minutes at a time, several times a day, while baby is awake and supervised.","It builds neck, shoulder, and core strength and helps prevent flat spots on the head.","Chest-to-chest on a reclined adult counts, as does across your lap, if the floor is a hard sell early on.","Build up gradually toward ~an hour total across the day by around 3–4 months."],"bl":"Little and often, always supervised and awake. Tummy time is 'exercise' that pays off in head control."},{"topic":"Development","q":"What milestones to expect in the first 6 months","tags":["milestones","development","smile","rolling","sitting","cooing","0-6 months","normal range"],"a":["Social smile around ~6 weeks; cooing and more eye contact through 2–3 months.","Better head control and pushing up in tummy time by ~3–4 months; reaching/grabbing and rolling starting ~4–6 months.","Babbling and sitting with support build toward 6 months; ranges are wide and healthy babies vary a lot.","Mention any loss of skills, or no social smile / very little response by ~2–3 months, to your pediatrician."],"bl":"Smiles ~6 wks, rolling ~4–6 mo, sitting-with-support by ~6 mo — but ranges are wide. Flag lost skills or no social smile to your doctor."},{"topic":"Feeding","q":"Starting solids (around 4–6 months)","tags":["solids","introducing solids","first foods","4 months","6 months","allergens","puree","baby led"],"a":["Look for readiness signs, usually around 6 months (and not before 4): good head control, sitting with support, interest in food, and loss of the tongue-thrust reflex.","Milk (breast or formula) stays the main nutrition through the first year — early solids are practice and exposure.","Introduce one new single-ingredient food at a time and wait a couple of days to watch for a reaction.","Purees and soft finger foods (baby-led) both work — offer iron-rich foods, and introduce common allergens early (see Cribsheet on allergens)."],"bl":"Wait for readiness (~6 months), keep milk as the main event, add one food at a time, and don't delay allergens."},{"topic":"Feeding","q":"Baby food introduction calendar — starting solids (4–6 months)","tags":["solids","first foods","baby food","cereal","stage 1","stage 2","stage 3","puree","introduction calendar","4 months","6 months","pears","squash","apples"],"a":["When to start: between 4 and 6 months — a good cue is sitting up with minimal support AND reaching for your food.","Add a new food about every 3 days and watch for reactions. Faces and spitting are normal — don't get discouraged.","Position: to start, sit baby in a bouncy seat on the floor, sit across from them, and appear relaxed (a high chair comes later).","Offer baby food best about an hour after a breast/bottle feed, so baby is a little hungry.","Texture progression: plain cereal (oatmeal or rice) → Stage 1 (thin, one flavor) → Stage 2 (thicker, multiple flavors) → Stage 3 (chunky, pea-sized mushable).","First three foods are pears, squash, then apples; once those are mastered you can sub in any Stage 1 food, and at Stage 2 really branch out.","Amounts are just a guide (e.g. ~1–2 Tbsp cereal + 2 oz fruit in the morning early on) — 'they may take 2 bites or 20, don't worry.' Milk stays the main nutrition."],"bl":"Start ~4–6 months at readiness, one new food every ~3 days, cereal → stage 1 → 2 → 3, with pears/squash/apples first. Keep it relaxed and messy; milk is still the main event."},{"topic":"Feeding","q":"Solid food progression (7–12 months)","tags":["solids","7 months","8 months","9 months","12 months","finger foods","pincher grasp","sippy cup","choking hazard","whole milk","table food"],"a":["Around 7–8 months the pincher grasp develops — start offering pea-sized, mushable finger foods alongside Stage 2/3 baby foods. Introduce new foods over 3 days.","Get baby into a high chair pulled up to the table so mealtime becomes familiar; offer breastmilk or formula in a sippy cup at all meals and snacks.","9–12 months: keep pea-sized mushable bites (some chunky-textured too). Avoid choking hazards — no hot dogs, grapes, or big apple chunks. Offer ~3–4 bites at a time (their stomach is about the size of their fist).","12 months and up: everyday foods in bite sizes, and begin the transition to whole milk.","Healthy relationship with food: let them dislike things (keep veggies on the menu anyway), structure timing (food ~3x/day, parent picks the menu), keep it stress-free, and 'stay in your lane' — you provide the food, they decide how much (don't count bites)."],"bl":"7–8mo: pea-sized mushables + a sippy cup; avoid choking hazards; whole milk at 12 months. You provide the food, they decide how much."},{"topic":"Safety","q":"Childproofing checklist (home safety)","tags":["childproofing","safety","outlets","cabinets","stairs","gates","furniture","tv","button battery","blind cords","windows","crib safety"],"a":["Cover unused outlets; keep blind cords and plugged-in cords short and out of reach; put safety latches on cabinets/drawers and move cleaning supplies to a high, locked cabinet.","Install hardware-mounted gates (not pressure-mounted) at the top and bottom of stairs; put doorknob covers and a hook-and-eye latch on basement/stair doors, and keep a set of keys handy.","Anchor heavy furniture and TVs to the wall — to a toddler a bookcase is a ladder — and add window safety locks so windows open only a few inches.","Keep plastic bags, latex balloons, and button batteries away from children. Button (coin) batteries are especially dangerous swallowed — they burn internally; seek immediate medical care.","Crib check: slats no wider than 2⅜ inches, no more than 2 inches between the mattress and crib sides, and nothing in the bed — use a zip-up sleeper for warmth instead of blankets.","Most important: take an infant/child CPR, choking & first-aid course — for you and any caregivers."],"bl":"Cover outlets, lock up chemicals, anchor furniture/TVs, hardware-mount stair gates, and keep button batteries/balloons/bags away. Learn infant CPR."},{"topic":"Safety","q":"Car seat safety","tags":["car seat","carseat","harness","chest clip","pinch test","install","rear facing","latch","safety"],"a":["Choose a seat by your child's age, size, and weight (per the manufacturer), that fits your vehicle well, and register it so you get recall notices.","Have it installed and inspected by a certified tech, and follow both the car-seat and vehicle manuals (and your state's guidelines).","Harness straps: at or below the shoulders for rear-facing (at or above for forward-facing), lying flat, and snug.","The chest clip goes at the nipple line, and the harness should pass the 'pinch test' — you shouldn't be able to pinch any slack at the shoulder."],"bl":"Right seat for their size, professionally checked, chest clip at the nipple line, snug enough to pass the pinch test."},{"topic":"Safety","q":"Choking — what to do","tags":["choking","cpr","first aid","finger sweep","back slap","gagging","emergency","safety"],"a":["If the child is coughing vigorously and can talk and breathe, do nothing — let them cough it out.","Do NOT slap the back of an upright child who may be choking (it can lodge the object), and don't put your fingers in their mouth unless you can SEE an object — only then do a finger sweep.","Liquid swallowed at meals usually clears itself in about 10–30 seconds.","Learn the actual removal technique in an infant/child CPR & choking class — it's best learned hands-on, before you need it."],"bl":"If they're coughing and breathing, let them cough — no back slaps or blind finger sweeps. Take an infant CPR/choking class."},{"topic":"Toddler","q":"Potty training — Triple P vs Booty Camp","tags":["potty training","toilet training","triple p","booty camp","toddler","pull ups","when to start"],"a":["Wait until they show interest — don't force it. The typical window is about 18 months to 3 years; let them come into the bathroom with you so they know what happens there.","Triple P is the 'slow and steady' method — patience, persistence, and positivity over time.","Booty Camp (the 'No Pants Weekend') is the quick, get-it-done method — messy but fast, most successful around 2–2½ years, and good when you have a limited timeline or are working parents.","Expect starts and stops. If a method isn't working, take 1–2 weeks off, go back to pull-ups/diapers, and start again — it won't ruin anything.","How long it takes varies by child — roughly a few days to a few weeks."],"bl":"Start at genuine interest (~18mo–3yr). Pick slow-and-steady (Triple P) or fast (Booty Camp, ~2–2½yr). Starts and stops are normal — breaks are fine."},{"topic":"Toddler","q":"Bringing home a new sibling (with a toddler at home)","tags":["sibling","new baby","toddler","big brother","big sister","jealousy","adjustment","routine"],"a":["Give the whole family about a month to adjust and extend lots of grace — bumps are completely normal.","Stay confident and skip the 'stress face' (furrowed brow). Use calm statements: 'Babies cry sometimes; you'll be just fine,' and 'You can touch the baby gently on the feet and arms — you're so good at that.'","Give your toddler a helping role (bring the diaper bag, a blanket) and keep a low basket of their snacks and a water bottle within reach so they can be independent when you're busy.","Compliment your toddler within earshot of another adult, and talk to them 'between awake and asleep' at bedtime about how well they're doing welcoming the baby.","Keep routines consistent — don't start letting them into your bed; find extra snuggle time during the day instead.","Avoid feeling guilty or underestimating them — they can and will adjust. It's just a season."],"bl":"Keep routines steady, stay calm and confident (no stress face), give your toddler a helper role and extra daytime snuggles, and give it about a month."},{"topic":"Toddler","q":"Dropping the morning nap (moving to one nap a day)","tags":["morning nap","one nap","two to one","nap transition","toddler","12 months","15 months","nap schedule"],"a":["Most toddlers drop the morning nap around 12–15 months. Going from two naps to one usually takes a while — often up to 9 days, sometimes longer.","Signs they're ready: more bad nap days than good for about 2 weeks, the afternoon nap has become unpredictable, and they're sleeping 10–12 hours straight at night.","Plan about 9 activities to keep them awake through the morning during the transition — they'll be tired at the old naptime.","The one nap: pick a start time between 12:00 and 1:30 pm and keep it the same every day; the nap is 1.5–3 hours and over by 4 pm no matter what (timed from when naptime starts, not when they fall asleep).","During naptime they can 'cry, play, or sleep.' If they mostly cry, get them up after 1.5 hours and keep them awake until bedtime, then start at the same time the next day.","Hold the 24-hour clock steady — consistent wake-up, naptime, and bedtime. Toddlers don't 'make up' lost sleep, so consistency is what settles the new single nap."],"bl":"Around 12–15 months, move to one nap starting 12:00–1:30 pm (1.5–3 hrs, done by 4 pm). Expect ~9 rough days; keep wake, nap, and bedtimes consistent and it settles."}];
 
 /* ---------------- Cribsheet (Emily Oster) — chapter takeaways ---------------- */
 var CRIB = [{"topic":"Newborn","q":"The first hours: skin-to-skin, cord clamping, vitamin K, eye ointment","tags":["vitamin k","eye ointment","skin to skin","delayed cord clamping","newborn","first hours","cribsheet"],"chunks":["Vitamin K at birth prevents a rare but catastrophic bleeding disorder — the case for it is strong; declining it carries real risk.","Delayed cord clamping (waiting ~1 minute) modestly raises the baby's iron stores and is reasonable in most uncomplicated births.","Erythromycin eye ointment prevents certain serious newborn eye infections; it's routine and low-risk.","Skin-to-skin contact genuinely helps with warmth, calming, bonding, and early feeding — and it's free."],"bl":["Say yes to vitamin K — skipping it risks serious bleeding.","Delayed cord clamping and skin-to-skin are low-cost, well-supported wins in the first hour."]},{"topic":"Newborn","q":"Circumcision — what does the evidence say?","tags":["circumcision","foreskin","uti","decision","newborn","cribsheet"],"chunks":["The measurable medical effects are small: a modestly lower rate of urinary tract infections in infancy and some reduction in certain infections later, off a low baseline.","It's a low-risk procedure but not zero-risk, and much of the decision is driven by family, cultural, and religious preference.","The evidence doesn't compel it either way — this is squarely a values-plus-small-data call."],"bl":["Medically it's close to a wash — small benefits, small risks.","Because the health effect is minor, family and personal values reasonably drive this one."]},{"topic":"Feeding","q":"Does breastfeeding really matter as much as people say?","tags":["breastfeeding","formula","benefits","iq","obesity","fed is best","cribsheet"],"chunks":["Much of the 'breast is best' research compares mothers who differ in income and education, not just feeding — which inflates the apparent benefits.","The better-supported short-term benefits are modest: fewer digestive infections and possibly fewer rashes/ear infections early on (and real, larger benefits for premature infants).","Big long-term claims — higher IQ, preventing obesity — largely don't hold up once you account for those family differences."],"bl":["Breastfeeding has real but modest short-term benefits; the dramatic long-term claims are weak.","A fed, thriving baby and a functioning parent matter more than the method. Choose what works for your family."]},{"topic":"Feeding","q":"Breastfeeding logistics — supply, pain, and pumping","tags":["breastfeeding","latch","supply","pumping","pain","lactation","cribsheet"],"chunks":["Early breastfeeding is genuinely hard for many; pain and supply worries are common and not a personal failing.","Good support (a lactation consultant, correcting the latch) resolves a lot of early problems.","Pumping output isn't a perfect readout of supply, and 'exclusive pumping' is a legitimate path.","The choice to continue, combo-feed, or switch is a personal cost-benefit call, not a moral test."],"bl":["If you want to breastfeed, get hands-on help early — most early problems are fixable.","There's no evidence you're harming your baby by supplementing or stopping. Weigh it like any other family decision."]},{"topic":"Feeding","q":"Breastfeeding and mom's diet: alcohol and caffeine","tags":["alcohol","caffeine","diet","breastfeeding","pump and dump","wine","coffee","cribsheet"],"chunks":["The amount of alcohol that reaches breast milk is small; an occasional drink is generally considered compatible with breastfeeding (feed or pump around it, and 'pump and dump' isn't required to clear it faster).","Moderate caffeine (a couple of cups of coffee a day) is generally fine; a few very sensitive babies get fussy.","There's little evidence that avoiding common 'gassy' foods broadly helps most babies."],"bl":["An occasional drink and moderate caffeine are generally compatible with breastfeeding.","You don't need to 'pump and dump' just to clear alcohol — time does that."]},{"topic":"Feeding","q":"Pacifiers and 'nipple confusion'","tags":["pacifier","nipple confusion","bottle","breastfeeding","soothing","cribsheet"],"chunks":["Strong evidence that early pacifier or bottle use derails breastfeeding is weak — 'nipple confusion' is more feared than demonstrated.","Pacifiers are separately associated with lower SIDS risk during sleep.","Waiting until breastfeeding is established is a reasonable, low-stakes precaution rather than a hard rule."],"bl":["The 'nipple confusion' worry isn't well supported; pacifiers are fine and are sleep-protective.","If nursing is going well, a pacifier or occasional bottle is low-risk."]},{"topic":"Sleep","q":"Back sleeping and SIDS — how strong is the evidence?","tags":["sids","back to sleep","sleep position","safe sleep","cribsheet"],"chunks":["The evidence that back-sleeping lowers SIDS risk is unusually strong — 'Back to Sleep' campaigns tracked with large drops in SIDS deaths.","This is one of the clearest, most actionable findings in all of early parenting.","A firm, flat, empty sleep surface reinforces the benefit."],"bl":["Put your baby to sleep on their back, every time. This is one of the few things the data is emphatic about.","Pair it with a bare, firm crib for the biggest risk reduction."]},{"topic":"Sleep","q":"Is bed-sharing (co-sleeping) safe?","tags":["bed sharing","co-sleeping","room sharing","sids","safe sleep","cribsheet"],"chunks":["Bed-sharing raises SIDS/suffocation risk on average, and the risk is much higher with smoking, alcohol or sedating drugs, or falling asleep on a sofa or armchair.","Room-sharing (baby on a separate safe surface in your room) gives the closeness without the added risk.","If feeds sometimes end with everyone asleep, a firm adult bed cleared of pillows/soft bedding is far safer than a couch."],"bl":["The safest setup is baby on their own firm, flat surface in your room.","If bed-sharing happens, the couch is the real danger and smoking/alcohol multiply the risk — plan the environment accordingly."]},{"topic":"Sleep","q":"Does sleep training work — and does it harm the baby?","tags":["sleep training","cry it out","ferber","self soothe","attachment","extinction","cribsheet"],"chunks":["Randomized studies show sleep training helps babies fall asleep and stay asleep, and it improves parental mood and lowers maternal depression.","Follow-up studies (including years later) find no evidence of long-term harm to children's attachment, behavior, or emotional health.","'Sleep training' spans many methods — from gentle fading to full extinction and graduated 'check-ins' (Ferber); the research doesn't crown one as clearly best."],"bl":["Sleep training is effective and, by the best evidence, not harmful long-term.","It's a legitimate choice, not a moral one. Pick a method you can be consistent with — or skip it."]},{"topic":"Health","q":"Vaccines — safe? Any link to autism?","tags":["vaccines","vaccination","autism","mmr","schedule","cribsheet"],"chunks":["There is no link between vaccines and autism — the original claim was fraudulent and has been thoroughly debunked by very large studies.","Vaccines are among the best-studied interventions in medicine and prevent serious, sometimes deadly diseases.","The standard schedule reflects a lot of evidence about timing and effectiveness; spacing it out has no demonstrated benefit and leaves kids unprotected longer."],"bl":["Vaccinate on schedule. The evidence for safety and benefit is overwhelming.","The autism link is a myth built on fraud — it should carry no weight in your decision."]},{"topic":"Feeding","q":"When should I introduce allergens like peanut?","tags":["allergens","peanut","egg","allergy","leap","early introduction","solids","cribsheet"],"chunks":["The old advice to delay allergens backfired. The LEAP trial showed early, sustained peanut exposure sharply reduced peanut allergy in high-risk infants (roughly an 80% relative reduction).","Guidelines now favor introducing common allergens early (often around 6 months, alongside first foods), not avoiding them, and keeping them in the diet.","If your baby is high-risk (severe eczema or egg allergy), talk to your pediatrician about how and when to start."],"bl":["Introduce allergens early and keep them in the diet — don't delay.","For a high-risk baby, get a pediatrician's plan, but the direction is 'introduce,' not 'avoid.'"]},{"topic":"Feeding","q":"Baby-led weaning vs purees","tags":["baby led weaning","blw","purees","first foods","choking","gagging","solids","cribsheet"],"chunks":["There's no strong evidence that baby-led weaning beats spoon-fed purees (or vice versa) for long-term eating habits or weight.","Gagging is common and is a normal protective reflex as babies learn to eat; it isn't the same as choking.","Either approach is fine — avoid genuine choking hazards and always supervise."],"bl":["Purees or finger foods — pick what suits your family; neither has a clear evidence edge.","Learn the difference between gagging (normal) and choking, avoid hazards, and supervise."]},{"topic":"Health","q":"Colic and crying — is there a fix?","tags":["colic","crying","gripe water","probiotics","gas","fussy","cribsheet"],"chunks":["Crying that peaks around 6 weeks and fades by ~3–4 months is a normal curve; 'colic' just labels the high end.","Most heavily marketed remedies (many drops, elaborate gas cures) have thin evidence; some data supports a specific probiotic for breastfed babies, with mixed results.","It is not caused by something you're doing wrong, and it passes."],"bl":["Colic is real, normal, and self-limited — most 'cures' aren't well supported.","Soothe, get breaks, and never shake a baby. If you're at the end of your rope, put baby down safely and step away."]},{"topic":"Newborn","q":"Postpartum: taking care of the parent","tags":["postpartum","ppd","depression","anxiety","mental health","recovery","mom","cribsheet"],"chunks":["Postpartum depression and anxiety are common and treatable — they are medical conditions, not weakness.","Screening exists for a reason; persistent sadness, dread, or inability to sleep even when baby sleeps is worth flagging.","Parental wellbeing directly affects the baby, so caring for yourself is caring for them."],"bl":["If something feels persistently off in your mood, tell your doctor — PPD/anxiety are common and very treatable.","Looking after the parent isn't optional; it's part of looking after the baby."]},{"topic":"Parenting","q":"Working vs staying home, and daycare","tags":["daycare","working mom","stay at home","childcare","development","working parents","cribsheet"],"chunks":["On average, children do fine whether a parent works or stays home; measured long-term differences are small and mixed.","Daycare is associated with a few more minor illnesses early on and some social benefits; quality of care matters more than the setting label.","This is a family-fit and finances decision far more than a 'what's best for the baby' verdict."],"bl":["Kids generally thrive either way — there's no clear 'right' answer in the data.","Decide on your family's needs and the quality of care, not guilt."]},{"topic":"Development","q":"Language, talking and reading to your baby","tags":["language","talking","reading","vocabulary","development","screen time","cribsheet"],"chunks":["Talking and reading to your baby — lots of back-and-forth 'conversation' — supports language, and it's the highest-value, lowest-cost thing you can do.","Wide variation in when kids start talking is normal; early or late talking within the normal range isn't destiny.","Fancy 'educational' videos and flashcards don't deliver on the big promises."],"bl":["Talk and read to your baby constantly — that's the evidence-backed 'enrichment.'","Skip the miracle products, and don't panic about normal variation in when talking starts."]},{"topic":"Development","q":"Bilingual homes","tags":["bilingual","two languages","language delay","development","cribsheet"],"chunks":["Raising a child with two languages does not cause lasting language delay or confusion.","Bilingual kids may mix languages early — that's normal and resolves.","Consistent exposure to both languages is what matters."],"bl":["Bilingualism is safe and beneficial — go for it if it fits your family.","Early mixing of languages is normal, not a problem."]},{"topic":"Development","q":"Screen time for babies and toddlers","tags":["screen time","tv","tablet","ipad","development","cribsheet"],"chunks":["For very young infants there's little upside to screens and reasons to keep them minimal; the strongest concern is displacing interaction, sleep, and play.","For toddlers, the evidence that moderate screen time causes harm is weaker and messier than headlines suggest — content and context matter.","It's a moderation-and-tradeoffs issue, not a catastrophe if a show gets you through dinner."],"bl":["Keep screens minimal for infants; for older kids, moderation beats panic.","Watch what it displaces (sleep, play, talking) more than the minutes themselves."]},{"topic":"Development","q":"Physical milestones: sitting, crawling, walking","tags":["milestones","walking","crawling","sitting","motor","development","late walker","cribsheet"],"chunks":["Normal ranges are wide — walking anywhere from about 9 to 17 months is within normal.","Skipping crawling, or crawling oddly, is usually not a concern on its own.","Timing within the normal range doesn't predict later ability; big delays or lost skills are what warrant a check."],"bl":["Milestone timing varies enormously and mostly doesn't predict the future.","Raise real delays or any loss of skills with your pediatrician — otherwise, relax about the exact month."]},{"topic":"Parenting","q":"Potty training — is there a best method or age?","tags":["potty training","toilet training","age","method","cribsheet"],"chunks":["No single method is clearly superior in the evidence; both gradual and intensive approaches work.","Readiness signs matter more than hitting a specific age, and pushing before readiness tends to drag it out.","Most kids get there; the 'right' age is a wide window."],"bl":["Pick a method you can be consistent with and start around readiness, not a magic age.","There's no evidence-backed 'best' technique — consistency wins."]},{"topic":"Parenting","q":"Discipline and tantrums","tags":["discipline","tantrums","time out","behavior","toddler","cribsheet"],"chunks":["Consistency and clear, calm limits matter more than the specific technique.","Tantrums are a normal developmental stage as toddlers gain wants faster than words and self-control.","Approaches like consistent routines and time-outs used calmly have reasonable support; harsh punishment does not."],"bl":["Be consistent and calm — that's the throughline the evidence supports.","Tantrums are normal development, not a discipline failure."]},{"topic":"Health","q":"Growth charts and percentiles","tags":["growth","percentiles","weight","chart","small baby","tracking","cribsheet"],"chunks":["A baby's percentile matters less than a steady, consistent growth curve over time.","Being at the 15th or 90th percentile is not inherently good or bad — tracking their own line is the signal.","A sudden drop across percentiles is what prompts a closer look, not the absolute number."],"bl":["Watch the trend, not the single percentile — steady growth along a baby's own curve is what matters.","A big, sustained fall across the curve is the flag to raise with your doctor."]}];
@@ -207,28 +210,43 @@ var AI_CONFIG = {
 
 /* ---------------- App ---------------- */
 (function(){
-  var items = [];
+  var items=[];
   MOC.forEach(function(m){ items.push(mk("moc","Moms on Call",m.topic,m.q,m.tags,m.a,[m.bl])); });
   CRIB.forEach(function(c){ items.push(mk("crib","Cribsheet",c.topic,c.q,c.tags,c.chunks,c.bl)); });
-
   function mk(src,label,topic,q,tags,body,bl){
-    var hay = (q+" "+topic+" "+(tags||[]).join(" ")+" "+(body||[]).join(" ")+" "+(bl||[]).join(" ")).toLowerCase();
+    var hay=(q+" "+topic+" "+(tags||[]).join(" ")+" "+(body||[]).join(" ")+" "+(bl||[]).join(" ")).toLowerCase();
     return {src:src,label:label,topic:topic,q:q,body:body||[],bl:bl||[],hay:hay};
   }
 
-  var qEl=document.getElementById('q'), clrEl=document.getElementById('clr'),
-      resEl=document.getElementById('results'), countEl=document.getElementById('count'),
-      chipsEl=document.getElementById('chips');
-  var srcFilter='all', query='';
+  // Moms on Call source guides saved in /sources — answers and cards link out to the relevant ones.
+  var GUIDES=[
+    {file:'feeding-guidelines.pdf', name:'Feeding Guidelines', kw:['feeding','ounce',' oz','bottle','formula','how much','24 oz','full feed','night feed']},
+    {file:'baby-food-introduction-calendar.pdf', name:'Baby Food Introduction Calendar', kw:['baby food','introduction calendar','cereal','stage 1','stage 2','stage 3']},
+    {file:'beginning-solids-4-6-months.pdf', name:'Beginning Solids (4–6 months)', kw:['starting solids','beginning solids','first foods','introduce solids','tongue-thrust']},
+    {file:'solid-food-progression-7-12-months.pdf', name:'Solid Food Progression (7–12 months)', kw:['pincher','finger foods','sippy','whole milk','table food']},
+    {file:'swaddle-method.pdf', name:'The Swaddle Method', kw:['swaddle','swaddling','startle','moro']},
+    {file:'safe-sleep-environment.pdf', name:'Safe Sleep Environment', kw:['safe sleep','sids','back to sleep','bare crib','bed-sharing','bed sharing']},
+    {file:'5-tips-for-great-sleep.pdf', name:'5 Tips for Great Sleep', kw:['great sleep','white noise','dark room','bedtime routine','catnap','drowsy','sleep tips']},
+    {file:'the-first-4-weeks.pdf', name:'The First 4 Weeks', kw:['first 4 weeks','first weeks','umbilical','cord','sponge bath','newborn care']},
+    {file:'dropping-the-morning-nap.pdf', name:'Dropping the Morning Nap', kw:['morning nap','one nap','two naps','nap transition']},
+    {file:'childproofing-and-safety-tips.pdf', name:'Childproofing & Safety Tips', kw:['childproof','safety','outlet','car seat','choking','cpr','button battery','stair gate']},
+    {file:'potty-training.pdf', name:'Potty Training', kw:['potty','toilet training','booty camp','triple p']},
+    {file:'bringing-home-a-sibling.pdf', name:'Bringing Home a Sibling', kw:['sibling','new baby','big brother','big sister']}
+  ];
+  function guidesFor(it){ return GUIDES.filter(function(g){ return g.kw.some(function(k){ return it.hay.indexOf(k)>=0; }); }); }
 
-  // Ignore filler words so natural questions ("how long should they sleep") still match.
+  var form=document.getElementById('askForm'), input=document.getElementById('askInput'), sendBtn=document.getElementById('askSend'),
+      convo=document.getElementById('convo'), askStatus=document.getElementById('askStatus'),
+      substatus=document.getElementById('substatus'), resEl=document.getElementById('results'),
+      browseWrap=document.getElementById('browseWrap');
+
+  // Filler words to ignore so natural questions still match.
   var STOP={a:1,an:1,the:1,is:1,are:1,be:1,been:1,to:1,of:1,for:1,and:1,or:1,my:1,i:1,we:1,us:1,our:1,you:1,your:1,
     it:1,its:1,that:1,this:1,these:1,those:1,with:1,without:1,on:1,in:1,at:1,by:1,do:1,does:1,did:1,how:1,what:1,
     whats:1,when:1,why:1,where:1,which:1,who:1,should:1,would:1,could:1,can:1,will:1,if:1,so:1,me:1,they:1,them:1,
     their:1,he:1,she:1,his:1,her:1,him:1,get:1,gets:1,got:1,much:1,many:1,long:1,often:1,about:1,from:1,as:1,was:1,
     were:1,has:1,have:1,had:1,am:1,any:1,some:1,need:1,needs:1,want:1,wants:1,tell:1,know:1,vs:1,also:1,just:1,
-    baby:1,babys:1,babies:1,newborn:1,newborns:1,infant:1,infants:1,old:1,mine:1,he:1,too:1,there:1,here:1};
-  // Broaden a word to related terms so "sleep" also finds naps/night/bedtime, etc.
+    baby:1,babys:1,babies:1,newborn:1,newborns:1,infant:1,infants:1,old:1,mine:1,too:1,there:1,here:1};
   var SYN={sleep:['nap','naps','night','bedtime','wake','drowsy','regression','settle','asleep'],nap:['sleep','naps','catnap'],
     feed:['feeding','eat','eating','bottle','nurse','nursing','ounce','ounces','milk','formula','breast','hungry'],
     eat:['feed','feeding','food','solid','solids','ounce'],hungry:['feed','cluster','growth'],poop:['diaper','stool','bowel'],
@@ -240,229 +258,125 @@ var AI_CONFIG = {
     vaccines:['vaccination','shots','autism'],schedule:['routine','wake','nap'],routine:['schedule','bedtime'],
     soothe:['soothing','calm','settle','pacifier'],gas:['burp','burping','hiccups','bicycle'],pacifier:['soothe','suck'],
     tummy:['tummytime'],milestone:['milestones','rolling','sitting','smile','crawling','walking'],
+    potty:['toilet','training'],sibling:['brother','sister'],safety:['childproof','car seat','choking','outlet'],
     breastfeed:['breastfeeding','nurse','latch','supply'],bath:['bathing','cord','sponge']};
   function stem(t){ return t.replace(/ies$/,'y').replace(/(ing|ed|es|s)$/,''); }
-  function variants(w){
-    var v=[w]; var s=stem(w); if(s&&s!==w) v.push(s);
-    if(SYN[w]) v=v.concat(SYN[w]); if(SYN[s]) v=v.concat(SYN[s]);
-    return v.filter(function(x,i,a){return x&&x.length>1&&a.indexOf(x)===i;});
-  }
-  function terms(q){
-    return q.toLowerCase().split(/[^a-z0-9]+/).filter(function(w){return w&&!STOP[w];}).map(variants);
-  }
-  var HLW=[];
-  function esc(s){return s.replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
-  function hl(s){
-    if(!HLW.length) return esc(s);
-    var out=esc(s);
-    try{ out=out.replace(new RegExp('('+HLW.join('|')+')','ig'),'<mark>$1</mark>'); }catch(e){}
-    return out;
-  }
+  function variants(w){ var v=[w]; var s=stem(w); if(s&&s!==w) v.push(s); if(SYN[w]) v=v.concat(SYN[w]); if(SYN[s]) v=v.concat(SYN[s]); return v.filter(function(x,i,a){return x&&x.length>1&&a.indexOf(x)===i;}); }
+  function terms(q){ return q.toLowerCase().split(/[^a-z0-9]+/).filter(function(w){return w&&!STOP[w];}).map(variants); }
+  function esc(s){return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
 
   function answerHTML(it){
-    var body='<ul>'+it.body.map(function(b){return '<li>'+hl(b)+'</li>';}).join('')+'</ul>';
-    var bl=it.bl.length?'<div class="bl"><b>Bottom line</b>'+it.bl.map(function(b){return '<p>'+hl(b)+'</p>';}).join('')+'</div>':'';
+    var body='<ul>'+it.body.map(function(b){return '<li>'+esc(b)+'</li>';}).join('')+'</ul>';
+    var bl=it.bl.length?'<div class="bl"><b>Bottom line</b>'+it.bl.map(function(b){return '<p>'+esc(b)+'</p>';}).join('')+'</div>':'';
     return body+bl;
   }
-
-  var TOPIC_ORDER=['Sleep','Feeding','Routine','Soothing','Health','Newborn','Development','Parenting'];
-  function topicRank(t){ var i=TOPIC_ORDER.indexOf(t); return i<0?99:i; }
-
-  function render(){
-    var groups=terms(query);
-    // highlight only the meaningful words the user actually typed (+ stems), not synonyms
-    HLW=query.toLowerCase().split(/[^a-z0-9]+/).filter(function(w){return w&&!STOP[w]&&w.length>1;})
-        .reduce(function(a,w){var s=stem(w); return s&&s!==w?a.concat([w,s]):a.concat([w]);},[])
-        .map(function(t){return t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');});
-    var pool=items.filter(function(it){ return srcFilter==='all'||it.src===srcFilter; });
-
-    if(!groups.length){ renderBrowse(pool); return; }   // no search query -> table of contents
-
-    // search mode: ranked, answers shown
-    pool.forEach(function(it){
-      var hit=0, score=0;
-      groups.forEach(function(g){
-        var inTitle=g.some(function(v){return it.q.toLowerCase().indexOf(v)>=0;});
-        var inTags=g.some(function(v){return it.hay.indexOf(v)>=0;});
-        if(inTags){ hit++; score+=inTitle?3:1; }
-      });
-      it._hit=hit; it._score=score;
-    });
-    var list=pool.filter(function(it){return it._hit>0;}).sort(function(a,b){ return (b._hit-a._hit)||(b._score-a._score); });
-    countEl.textContent = list.length + (list.length===1?' answer':' answers') + ' for “'+query+'”';
-    if(!list.length){
-      resEl.innerHTML='<div class="empty"><div class="big">🍼</div><p>No match yet. Try key words like <b>sleep</b>, <b>feeding</b>, <b>swaddle</b>, <b>fever</b>, or <b>vaccines</b>.</p></div>';
-      return;
-    }
-    resEl.innerHTML=list.map(function(it){
-      return '<article class="card"><div class="top"><span class="badge '+it.src+'">'+it.label+'</span>'+
-             '<span class="topic">'+esc(it.topic)+'</span></div>'+
-             '<h2>'+hl(it.q)+'</h2>'+answerHTML(it)+'</article>';
-    }).join('');
+  function srcRow(it){
+    var gl=guidesFor(it).map(function(g){return '<a class="srcpill" href="sources/'+g.file+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">'+esc(g.name)+'</a>';}).join('');
+    return gl?'<div class="srcrow">Source: '+gl+'</div>':'';
   }
-
-  function renderBrowse(pool){
-    var byTopic={};
-    pool.forEach(function(it){ (byTopic[it.topic]=byTopic[it.topic]||[]).push(it); });
-    var topics=Object.keys(byTopic).sort(function(a,b){ return topicRank(a)-topicRank(b) || a.localeCompare(b); });
-    countEl.textContent='Browse '+pool.length+' guides by topic — tap a section, then a title';
-    resEl.innerHTML=topics.map(function(t){
-      var rows=byTopic[t].map(function(it){
-        return '<div class="item"><button class="item-h" type="button" aria-expanded="false">'+
-               '<span class="q">'+esc(it.q)+'</span><span class="badge '+it.src+'">'+it.label+'</span>'+
-               '<span class="chev">›</span></button><div class="item-body">'+answerHTML(it)+'</div></div>';
-      }).join('');
-      return '<section class="sec"><button class="sec-h" type="button" aria-expanded="false">'+
-             '<span class="nm">'+esc(t)+'</span><span class="ct">'+byTopic[t].length+'</span><span class="chev">›</span></button>'+
-             '<div class="sec-body">'+rows+'</div></section>';
-    }).join('');
-  }
-
-  qEl.addEventListener('input',function(){ query=qEl.value.trim(); clrEl.style.display=query?'block':'none'; render(); });
-  clrEl.addEventListener('click',function(){ qEl.value=''; query=''; clrEl.style.display='none'; qEl.focus(); render(); });
-  chipsEl.addEventListener('click',function(e){
-    var b=e.target.closest('.chip'); if(!b) return;
-    srcFilter=b.getAttribute('data-src');
-    [].forEach.call(chipsEl.children,function(c){ c.setAttribute('aria-pressed', c===b?'true':'false'); });
-    render();
-  });
-
-  // expand/collapse table-of-contents sections and titles
-  resEl.addEventListener('click',function(e){
-    var sh=e.target.closest('.sec-h');
-    if(sh){ var open=sh.parentNode.classList.toggle('open'); sh.setAttribute('aria-expanded', open?'true':'false'); return; }
-    var ih=e.target.closest('.item-h');
-    if(ih){ var o=ih.parentNode.classList.toggle('open'); ih.setAttribute('aria-expanded', o?'true':'false'); }
-  });
-
-  render();
-
-  /* ---------------- Ask (AI chat) ---------------- */
-  var aiReady = !!(AI_CONFIG.endpoint && AI_CONFIG.firebase && AI_CONFIG.firebase.apiKey);
-  var guidesView=document.getElementById('guidesView'), askView=document.getElementById('askView'),
-      guidesTop=document.getElementById('guidesTop'), tabsEl=document.getElementById('tabs');
-  var mode='guides', chat=[], authUser=null, authObj=null;
-
-  var BASE_SYS = "You are Baby Answers, a warm, concise assistant for parents of a 0–6 month old. "+
-    "Answer ONLY using the SOURCE MATERIAL below (from the free Moms on Call guides and Emily Oster's Cribsheet). "+
-    "If the answer isn't in those sources, say you don't have it in your two sources and suggest asking their pediatrician — don't guess or invent. "+
-    "Be practical and brief: a few sentences or short bullets. Never give medication doses. "+
-    "For anything urgent, or any fever in a baby under 3 months, tell them to call their doctor now. "+
-    "When Moms on Call (routine) and Cribsheet (evidence) differ, you may note both. Add a one-line 'Bottom line' when useful.";
-
-  function retrieve(q, n){
+  function retrieve(q,n){
     var groups=terms(q); if(!groups.length) return [];
-    return items.map(function(it){
-      var hit=0, score=0;
-      groups.forEach(function(g){
-        var inT=g.some(function(v){return it.q.toLowerCase().indexOf(v)>=0;});
-        var inH=g.some(function(v){return it.hay.indexOf(v)>=0;});
-        if(inH){ hit++; score+=inT?3:1; }
-      });
-      return {it:it,hit:hit,score:score};
-    }).filter(function(x){return x.hit>0;})
-      .sort(function(a,b){return (b.hit-a.hit)||(b.score-a.score);})
-      .slice(0,n).map(function(x){return x.it;});
+    return items.map(function(it){ var hit=0,score=0; groups.forEach(function(g){ var inT=g.some(function(v){return it.q.toLowerCase().indexOf(v)>=0;}); var inH=g.some(function(v){return it.hay.indexOf(v)>=0;}); if(inH){hit++;score+=inT?3:1;} }); return {it:it,hit:hit,score:score}; })
+      .filter(function(x){return x.hit>0;}).sort(function(a,b){return (b.hit-a.hit)||(b.score-a.score);}).slice(0,n).map(function(x){return x.it;});
   }
   function contextFor(q){
     var top=retrieve(q,8); if(!top.length) top=items.slice(0,6);
-    return top.map(function(it){
-      return '### '+it.topic+' — '+it.q+' ['+it.label+']\n'+
-        it.body.map(function(b){return '- '+b;}).join('\n')+
-        (it.bl&&it.bl.length?('\nBottom line: '+it.bl.join(' ')):'');
-    }).join('\n\n');
+    return top.map(function(it){ return '### '+it.topic+' — '+it.q+' ['+it.label+']\n'+it.body.map(function(b){return '- '+b;}).join('\n')+(it.bl&&it.bl.length?('\nBottom line: '+it.bl.join(' ')):''); }).join('\n\n');
   }
+  function sourceLinks(top){
+    var files={}, cribs=false, out=[];
+    top.forEach(function(it){ if(it.src==='crib') cribs=true; guidesFor(it).forEach(function(g){ files[g.file]=g.name; }); });
+    Object.keys(files).forEach(function(f){ out.push('<a href="sources/'+f+'" target="_blank" rel="noopener">'+esc(files[f])+'</a>'); });
+    if(cribs) out.push('Cribsheet (Emily Oster)');
+    return out;
+  }
+  var BASE_SYS="You are Baby Answers, a warm, concise assistant for parents. Answer ONLY using the SOURCE MATERIAL below (from the free Moms on Call guides and Emily Oster's Cribsheet). If the answer isn't in those sources, say you don't have it in your sources and suggest asking their pediatrician — don't guess or invent. Be practical and brief: a few sentences or short bullets. Never give medication doses. For anything urgent, or any fever in a baby under 3 months, tell them to call their doctor now. When Moms on Call (routine) and Cribsheet (evidence) differ, you may note both. Add a one-line 'Bottom line' when useful.";
 
-  function initAuth(){
-    if(authObj || !aiReady || typeof firebase==='undefined') return;
-    try{
-      if(!firebase.apps||!firebase.apps.length) firebase.initializeApp(AI_CONFIG.firebase);
-      authObj=firebase.auth();
-      authObj.onAuthStateChanged(function(u){ authUser=u; if(mode==='ask') renderAsk(); });
-      authObj.getRedirectResult().catch(function(){});
-    }catch(e){ authObj=null; }
-  }
-  function signIn(){
-    if(!authObj) return;
-    var p=new firebase.auth.GoogleAuthProvider(); p.setCustomParameters({prompt:'select_account'});
-    authObj.signInWithRedirect(p);
-  }
-  function signOut(){ if(authObj) authObj.signOut().then(function(){ authUser=null; chat=[]; renderAsk(); }); }
-
-  function setMode(m){
-    mode=m;
-    [].forEach.call(tabsEl.children,function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-mode')===m?'true':'false'); });
-    var ask=(m==='ask');
-    guidesView.hidden=ask; askView.hidden=!ask; guidesTop.style.display=ask?'none':'';
-    if(ask){ initAuth(); renderAsk(); }
-  }
-  tabsEl.addEventListener('click',function(e){ var b=e.target.closest('.tab'); if(b) setMode(b.getAttribute('data-mode')); });
-
-  function renderAsk(){
-    if(!aiReady){
-      askView.innerHTML='<div class="aihint"><b>The Ask box isn’t turned on yet.</b><br>It needs a quick one-time setup (see DEPLOY.md). Meanwhile, the <b>Guides</b> tab search understands plain questions like “how long should they sleep.”</div>';
-      return;
-    }
-    if(typeof firebase==='undefined' || !authObj){
-      askView.innerHTML='<div class="aihint"><b>Couldn’t load sign-in.</b><br>Check your connection and reload. The <b>Guides</b> tab still works offline.</div>';
-      return;
-    }
-    if(!authUser){
-      askView.innerHTML='<div class="aihint"><b>Ask about your baby.</b><br>Sign in (just you and Luke) to chat with an assistant that answers from your Moms on Call &amp; Cribsheet guides.'+
-        '<br><button class="signin" id="signinBtn">Sign in with Google</button></div>';
-      var sb=document.getElementById('signinBtn'); if(sb) sb.addEventListener('click',signIn);
-      return;
-    }
-    askView.innerHTML='<div class="whoami"><span>Signed in as '+esc(authUser.email||'')+'</span><button type="button" id="signout">Sign out</button></div>'+
-      '<div class="thread" id="askThread"></div>'+
-      '<div class="askstatus" id="askStatus"></div>'+
-      '<form class="askbar" id="askForm"><textarea id="askInput" rows="1" placeholder="Ask about sleep, feeding, fever…" aria-label="Ask a question"></textarea><button type="submit" id="askSend">Send</button></form>'+
-      '<p class="disc">Answers come from your two sources only — not medical advice. For anything urgent or a fever under 3 months, call your doctor.</p>';
-    document.getElementById('signout').addEventListener('click',signOut);
-    var form=document.getElementById('askForm'), input=document.getElementById('askInput');
-    form.addEventListener('submit',function(e){ e.preventDefault(); var t=input.value.trim(); if(t){ input.value=''; input.style.height='auto'; ask(t); } });
-    input.addEventListener('input',function(){ input.style.height='auto'; input.style.height=Math.min(input.scrollHeight,120)+'px'; });
-    input.addEventListener('keydown',function(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); if(form.requestSubmit) form.requestSubmit(); else ask(input.value.trim()); } });
-    paintThread();
-    if(!chat.length){ var th=document.getElementById('askThread'); if(th) th.innerHTML='<div class="msg ai">Hi! Ask me anything about your baby’s sleep, feeding, or care and I’ll answer from your Moms on Call and Cribsheet guides.</div>'; }
-  }
-  function paintThread(){
-    var t=document.getElementById('askThread'); if(!t) return;
-    t.innerHTML=chat.map(function(m){
-      if(m.role==='user') return '<div class="msg you">'+esc(m.content)+'</div>';
-      return '<div class="msg ai">'+esc(m.content)+(m.src?'<span class="src">Based on: '+esc(m.src)+'</span>':'')+'</div>';
+  var TOPIC_ORDER=['Sleep','Feeding','Routine','Soothing','Health','Safety','Newborn','Development','Toddler','Parenting'];
+  function topicRank(t){ var i=TOPIC_ORDER.indexOf(t); return i<0?99:i; }
+  function renderBrowse(){
+    var byTopic={}; items.forEach(function(it){ (byTopic[it.topic]=byTopic[it.topic]||[]).push(it); });
+    var topics=Object.keys(byTopic).sort(function(a,b){ return topicRank(a)-topicRank(b) || a.localeCompare(b); });
+    resEl.innerHTML=topics.map(function(t){
+      var rows=byTopic[t].map(function(it){
+        return '<div class="item"><button class="item-h" type="button" aria-expanded="false"><span class="q">'+esc(it.q)+'</span><span class="badge '+it.src+'">'+it.label+'</span><span class="chev">›</span></button><div class="item-body">'+answerHTML(it)+srcRow(it)+'</div></div>';
+      }).join('');
+      return '<section class="sec"><button class="sec-h" type="button" aria-expanded="false"><span class="nm">'+esc(t)+'</span><span class="ct">'+byTopic[t].length+'</span><span class="chev">›</span></button><div class="sec-body">'+rows+'</div></section>';
     }).join('');
-    t.scrollTop=t.scrollHeight;
   }
-  function ask(text){
-    chat.push({role:'user',content:text});
-    var top=retrieve(text,8), srcNames=top.slice(0,4).map(function(it){return it.q;}).join('; ');
-    paintThread();
-    var sendBtn=document.getElementById('askSend'); if(sendBtn) sendBtn.disabled=true;
-    var st=document.getElementById('askStatus'); if(st) st.textContent='Thinking…';
+  resEl.addEventListener('click',function(e){
+    if(e.target.closest('a')) return;
+    var sh=e.target.closest('.sec-h'); if(sh){ var o=sh.parentNode.classList.toggle('open'); sh.setAttribute('aria-expanded',o?'true':'false'); return; }
+    var ih=e.target.closest('.item-h'); if(ih){ var op=ih.parentNode.classList.toggle('open'); ih.setAttribute('aria-expanded',op?'true':'false'); }
+  });
+
+  // ---- auth (only the AI answer needs it) ----
+  var aiReady=!!(AI_CONFIG.endpoint&&AI_CONFIG.firebase&&AI_CONFIG.firebase.apiKey);
+  var authUser=null, authObj=null;
+  function initAuth(){ if(authObj||!aiReady||typeof firebase==='undefined') return; try{ if(!firebase.apps||!firebase.apps.length) firebase.initializeApp(AI_CONFIG.firebase); authObj=firebase.auth(); authObj.onAuthStateChanged(function(u){ authUser=u; updateSub(); }); authObj.getRedirectResult().catch(function(){}); }catch(e){ authObj=null; } }
+  function signIn(){ if(!authObj) return; var p=new firebase.auth.GoogleAuthProvider(); p.setCustomParameters({prompt:'select_account'}); authObj.signInWithRedirect(p); }
+  function signOut(){ if(authObj) authObj.signOut().then(function(){ authUser=null; updateSub(); }); }
+  function updateSub(){
+    if(!aiReady){ substatus.innerHTML='AI answers aren’t set up yet — asking shows the closest guides. (See DEPLOY.md to enable them.)'; return; }
+    if(typeof firebase==='undefined'||!authObj){ substatus.textContent='Sign-in couldn’t load — you can still browse the guides below.'; return; }
+    if(!authUser){ substatus.innerHTML='<button class="link" id="siL">Sign in</button> (you &amp; Luke) for AI answers from your guides.'; var b=document.getElementById('siL'); if(b)b.addEventListener('click',signIn); return; }
+    substatus.innerHTML='AI on · '+esc(authUser.email||'')+' · <button class="link" id="soL">sign out</button>'; var s=document.getElementById('soL'); if(s)s.addEventListener('click',signOut);
+  }
+
+  // ---- conversation ----
+  var chat=[];
+  function bubble(m){
+    if(m.role==='user') return '<div class="msg you">'+esc(m.content)+'</div>';
+    var src=m.srcHTML?'<span class="src">Sources: '+m.srcHTML+'</span>':'';
+    return '<div class="msg ai">'+esc(m.content).replace(/\n/g,'<br>')+src+'</div>';
+  }
+  function card(it){ return '<article class="card"><div class="top"><span class="badge '+it.src+'">'+it.label+'</span><span class="topic">'+esc(it.topic)+'</span></div><h2>'+esc(it.q)+'</h2>'+answerHTML(it)+srcRow(it)+'</article>'; }
+  function showAnswer(){ browseWrap.hidden=true; convo.hidden=false; }
+  function showHome(){ chat=[]; convo.hidden=true; convo.innerHTML=''; askStatus.textContent=''; browseWrap.hidden=false; window.scrollTo(0,0); }
+  function tools(){ return '<div class="convo-tools"><button type="button" id="backB">↩ Browse guides</button></div>'; }
+  function wireBack(){ var bb=document.getElementById('backB'); if(bb) bb.addEventListener('click',showHome); }
+  function renderThread(){ showAnswer(); convo.innerHTML=tools()+chat.map(bubble).join(''); wireBack(); window.scrollTo(0,0); }
+  function renderFallback(text,reason){
+    showAnswer();
+    var top=retrieve(text,6);
+    var banner = reason==='signin'
+      ? '<div class="aihint"><b>Sign in for a synthesized answer.</b> <button class="link" id="siL2">Sign in</button> (you &amp; Luke). Meanwhile, the closest guides:</div>'
+      : '<div class="aihint"><b>AI answers aren’t turned on yet.</b> See DEPLOY.md to enable synthesized answers. Closest guides for “'+esc(text)+'”:</div>';
+    var body = top.length? top.map(card).join('') : '<div class="empty"><div class="big">🍼</div><p>No match — try different words, or browse the topics below.</p></div>';
+    convo.innerHTML=tools()+banner+body; wireBack();
+    var s=document.getElementById('siL2'); if(s) s.addEventListener('click',signIn);
+    window.scrollTo(0,0);
+  }
+  function doAI(text){
+    var top=retrieve(text,8), links=sourceLinks(top).join(' · ');
+    askStatus.textContent='Thinking…'; if(sendBtn) sendBtn.disabled=true;
     var sys=BASE_SYS+"\n\nSOURCE MATERIAL:\n"+contextFor(text);
-    var payloadMsgs=chat.map(function(m){return {role:m.role,content:m.content};});
-    authUser.getIdToken().then(function(tok){
-      return fetch(AI_CONFIG.endpoint,{method:'POST',headers:{'content-type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({system:sys,messages:payloadMsgs})});
-    }).then(function(r){ return r.json().then(function(j){ return {ok:r.ok,j:j}; }); })
-    .then(function(res){
-      if(st) st.textContent=''; if(sendBtn) sendBtn.disabled=false;
-      if(!res.ok){ chat.push({role:'assistant',content:'⚠️ '+((res.j&&res.j.error)||'Something went wrong — try again.')}); paintThread(); return; }
-      var ans=((res.j&&res.j.text)||'').trim();
-      chat.push({role:'assistant',content:ans||'(No answer came back — try rephrasing.)', src:ans?srcNames:''});
-      paintThread();
-    }).catch(function(){
-      if(st) st.textContent=''; if(sendBtn) sendBtn.disabled=false;
-      chat.push({role:'assistant',content:'⚠️ Network error — check your connection and try again.'}); paintThread();
-    });
+    var msgs=chat.map(function(m){return {role:m.role,content:m.content};});
+    authUser.getIdToken().then(function(tok){ return fetch(AI_CONFIG.endpoint,{method:'POST',headers:{'content-type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({system:sys,messages:msgs})}); })
+      .then(function(r){ return r.json().then(function(j){return {ok:r.ok,j:j};}); })
+      .then(function(res){ askStatus.textContent=''; if(sendBtn) sendBtn.disabled=false;
+        if(!res.ok){ chat.push({role:'assistant',content:'⚠️ '+((res.j&&res.j.error)||'Something went wrong — try again.')}); renderThread(); return; }
+        var ans=((res.j&&res.j.text)||'').trim();
+        chat.push({role:'assistant',content:ans||'(No answer — try rephrasing.)', srcHTML:ans?links:''}); renderThread();
+      }).catch(function(){ askStatus.textContent=''; if(sendBtn) sendBtn.disabled=false; chat.push({role:'assistant',content:'⚠️ Network error — try again.'}); renderThread(); });
+  }
+  function onAsk(text){
+    text=(text||'').trim(); if(!text) return;
+    if(aiReady && authObj && authUser){ chat.push({role:'user',content:text}); renderThread(); doAI(text); }
+    else if(aiReady && authObj){ renderFallback(text,'signin'); }
+    else { renderFallback(text,'setup'); }
   }
 
+  form.addEventListener('submit',function(e){ e.preventDefault(); var t=input.value.trim(); if(t){ input.value=''; input.style.height='auto'; onAsk(t); } });
+  input.addEventListener('input',function(){ input.style.height='auto'; input.style.height=Math.min(input.scrollHeight,120)+'px'; });
+  input.addEventListener('keydown',function(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); if(form.requestSubmit) form.requestSubmit(); else onAsk(input.value); } });
+
+  renderBrowse();
+  updateSub();
   window.addEventListener('load',function(){ if(aiReady) initAuth(); });
-
-  if('serviceWorker' in navigator){
-    window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
-  }
+  if('serviceWorker' in navigator){ window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
 })();
+
 </script>
 </body>
 </html>
