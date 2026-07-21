@@ -37,10 +37,13 @@ const ALLOW = [
 // The site allowed to call this endpoint (CORS).
 const APP_ORIGIN = 'https://carolinebyrnes25.github.io';
 
-// gemini-2.0-flash is a fast, cheap, NON-thinking model — no thinking-token
-// truncation and no thinkingConfig needed (unlike the 2.5 "flash-latest" alias).
-const DEFAULT_MODELS = { gemini: 'gemini-2.0-flash', anthropic: 'claude-sonnet-4-5', openai: 'gpt-4.1' };
-const MAX_TOKENS = 1200;
+// gemini-flash-latest auto-resolves to the current stable Gemini Flash, so we
+// don't have to track version numbers as Google releases new ones.
+const DEFAULT_MODELS = { gemini: 'gemini-flash-latest', anthropic: 'claude-sonnet-4-5', openai: 'gpt-4.1' };
+// High ceiling so a "thinking" Flash model's internal reasoning doesn't starve
+// the visible answer (the system prompt still keeps answers brief). You only pay
+// for tokens actually generated, so a generous cap is safe.
+const MAX_TOKENS = 4096;
 
 exports.askBaby = onRequest(
   { secrets: [AI_API_KEY], region: 'us-central1', maxInstances: 3, cors: [APP_ORIGIN] },
