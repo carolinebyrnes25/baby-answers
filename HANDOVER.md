@@ -14,7 +14,7 @@ handouts) and **Cribsheet** (Emily Oster). Built for Caroline & Luke Byrnes.
 ## Current state (all pushed, working)
 - **Single-file app:** `index.html` holds the whole app + all content inline (`var MOC=[…]` and
   `var CRIB=[…]` JSON arrays near the bottom, then the app IIFE).
-- **68 answers** (46 Moms on Call + 22 Cribsheet), grouped into topics: Sleep, Feeding, Routine,
+- **72 answers** (50 Moms on Call + 22 Cribsheet), grouped into topics: Sleep, Feeding, Routine,
   Soothing, Health, Safety, Newborn, Development, Toddler, Parenting.
 - **Unified "Ask" UI** (the user explicitly wanted ONE ask box, not tabs): the header has one ask
   input. Asking → an **AI-synthesized** answer from the guides *once the backend is turned on*;
@@ -79,13 +79,11 @@ The **Ask** box only *synthesizes* answers once a small backend is deployed. Eve
    **General Feeding Guidelines (pp. 77–78)** as authoritative; flagged to the user.
 3. Content is broad now (newborn → toddler). Subtitle was broadened from "0–6 months" to
    "Newborn to toddler."
-4. **PENDING book pages to transcribe + integrate (paraphrased, primary source):** the user
-   uploaded 15 more Moms on Call book photos at the very end that this session ran out of context
-   to process — `IMG_9135` through `IMG_9149` in
-   `/root/.claude/uploads/a6981e00-8248-5834-a2b2-6b23253cc8e9/` (filenames are `<hash>-IMG_91xx.jpeg`;
-   list them with `ls | grep IMG_914`). Read each (Read tool renders JPEGs; they're rotated but
-   legible), pull the **factual guidance only** (likely the "Typical Days" hour-by-hour schedules
-   and any remaining sections), add/refine `MOC` entries as paraphrased bullets — do NOT commit
-   verbatim text or the photos. These pages continue in order from where p123 (sleep-time
-   troubleshooting) left off. Uploads have survived restarts so far, but if they're gone, ask the
-   user to re-send.
+4. **DONE — book pages pp. 125–143 integrated** (2026-07-21). The 15 pending Moms on Call photos
+   (`IMG_9135`–`9149`, re-sent as two zips) covered "Maintaining Good Sleep Habits" (p125), the full
+   "Naptime" section (pp. 127–129), and the "Typical Days" hour-by-hour schedules (pp. 134–143:
+   2–4 wk, 4–8 wk, 8–16 wk, 4–6 mo, plus Crazy Day / Nap tips). Added as **4 new paraphrased MOC
+   entries** (46 → 50): two Routine ("Typical Day" schedules 2 wk–4 mo; Typical Day at 4–6 mo with
+   solids) and two Sleep (Naptime by age; Keeping sleep on track through travel/milestones/illness).
+   No verbatim text or photos committed (photos stayed in the session scratchpad). If more book
+   pages surface later, follow the same paraphrase-only rule.
