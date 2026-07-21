@@ -319,7 +319,15 @@ var AI_CONFIG = {
   var aiReady=!!(AI_CONFIG.endpoint&&AI_CONFIG.firebase&&AI_CONFIG.firebase.apiKey);
   var authUser=null, authObj=null;
   function initAuth(){ if(authObj||!aiReady||typeof firebase==='undefined') return; try{ if(!firebase.apps||!firebase.apps.length) firebase.initializeApp(AI_CONFIG.firebase); authObj=firebase.auth(); authObj.onAuthStateChanged(function(u){ authUser=u; updateSub(); }); authObj.getRedirectResult().catch(function(){}); }catch(e){ authObj=null; } }
-  function signIn(){ if(!authObj) return; var p=new firebase.auth.GoogleAuthProvider(); p.setCustomParameters({prompt:'select_account'}); authObj.signInWithRedirect(p); }
+  function signIn(){ if(!authObj) return; var p=new firebase.auth.GoogleAuthProvider(); p.setCustomParameters({prompt:'select_account'});
+    // Popup is reliable across origins (the app is on github.io, the auth handler on firebaseapp.com);
+    // redirect sign-in breaks under browser third-party-storage blocking. Fall back to redirect only if popups are unavailable.
+    authObj.signInWithPopup(p).catch(function(e){ var c=(e&&e.code)||'';
+      if(c==='auth/popup-closed-by-user'||c==='auth/cancelled-popup-request') return;
+      if(c==='auth/popup-blocked'||c==='auth/operation-not-supported-in-this-environment'){ try{ authObj.signInWithRedirect(p); }catch(_){ } return; }
+      try{ substatus.textContent='Sign-in error: '+((e&&e.message)||c||'unknown'); }catch(_){ }
+    });
+  }
   function signOut(){ if(authObj) authObj.signOut().then(function(){ authUser=null; updateSub(); }); }
   function updateSub(){
     if(!aiReady){ substatus.innerHTML='AI answers aren’t set up yet — asking shows the closest guides. (See DEPLOY.md to enable them.)'; return; }
