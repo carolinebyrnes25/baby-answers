@@ -34,7 +34,7 @@ handouts) and **Cribsheet** (Emily Oster). Built for Caroline & Luke Byrnes.
 - **Light/dark:** manual toggle in the header (🌙/☀️), persisted in `localStorage['ba-theme']`,
   overrides the OS via `:root[data-theme=...]`; an inline `<head>` script applies it pre-paint. A
   single `<meta name=theme-color>` is updated by JS.
-- **PWA:** `manifest.webmanifest`, `sw.js` (offline; cache is `baby-answers-v17` — BUMP on every
+- **PWA:** `manifest.webmanifest`, `sw.js` (offline; cache is `baby-answers-v18` — BUMP on every
   change so installed apps refresh; PDFs network-only). **Icons** in `icons/` are the sleeping-baby
   logo (regenerated from a user photo via headless Chromium; favicon/apple-touch/header carry `?v=2`).
 

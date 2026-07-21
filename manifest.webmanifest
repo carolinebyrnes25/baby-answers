@@ -1,7 +1,7 @@
 {
   "name": "Baby Answers",
   "short_name": "Baby Answers",
-  "description": "Quick, searchable baby-care answers for 0–6 months, from the Moms on Call guides and Emily Oster's Cribsheet.",
+  "description": "Baby-care answers from newborn to toddler, drawn from the Moms on Call guides and Emily Oster's Cribsheet.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
