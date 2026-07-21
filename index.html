@@ -5,8 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Baby Answers</title>
 <meta name="description" content="Quick, searchable baby-care answers from newborn to toddler, drawn from the Moms on Call guides and Emily Oster's Cribsheet.">
-<meta name="theme-color" content="#7c9ef0" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1420" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f4f6fb">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/favicon-64.png?v=2" sizes="64x64" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
@@ -23,13 +22,20 @@
     --moc:#0f9d8c; --moc-bg:#e3f6f2; --crib:#6a6bd0; --crib-bg:#ecebfb;
     --bl-bg:#f0f3ff; --bl-line:#c9d4f7; --shadow:0 1px 2px rgba(20,30,60,.06),0 8px 24px rgba(20,30,60,.06);
   }
+  /* Dark palette: follows the OS when no manual choice is set, or an explicit data-theme="dark". */
   @media (prefers-color-scheme: dark){
-    :root{
+    :root:not([data-theme]){
       --bg:#0f1420; --card:#171e2d; --ink:#eaeefb; --muted:#9aa6c4; --line:#26304a;
       --accent:#9db0f0; --peri:#7c9ef0; --teal:#4fd0bc;
       --moc:#54d6c2; --moc-bg:#123029; --crib:#a9abf3; --crib-bg:#1e2140;
       --bl-bg:#182036; --bl-line:#2c3a63; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
     }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f1420; --card:#171e2d; --ink:#eaeefb; --muted:#9aa6c4; --line:#26304a;
+    --accent:#9db0f0; --peri:#7c9ef0; --teal:#4fd0bc;
+    --moc:#54d6c2; --moc-bg:#123029; --crib:#a9abf3; --crib-bg:#1e2140;
+    --bl-bg:#182036; --bl-line:#2c3a63; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
   }
   *{box-sizing:border-box}
   html,body{margin:0}
@@ -48,6 +54,15 @@
   .brand img{width:38px; height:38px; border-radius:10px; box-shadow:var(--shadow)}
   .brand h1{font-size:20px; margin:0; letter-spacing:-.01em}
   .brand p{margin:1px 0 0; font-size:12.5px; color:var(--muted)}
+  .themebtn{margin-left:auto; flex:0 0 auto; width:38px; height:38px; border-radius:11px; border:1px solid var(--line);
+    background:var(--card); color:var(--ink); font-size:18px; line-height:1; cursor:pointer; box-shadow:var(--shadow)}
+  .themebtn:active{transform:scale(.94)}
+  /* "Disclaimer" tooltip — reveals on hover (desktop) and tap/focus (mobile) */
+  .tip{position:relative; color:var(--accent); text-decoration:underline; text-underline-offset:2px; cursor:pointer; font-weight:600}
+  .tip>.tiptext{display:none; position:absolute; right:0; bottom:calc(100% + 7px); width:min(300px,82vw);
+    background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:11px; box-shadow:var(--shadow);
+    padding:11px 13px; font-size:12.5px; font-weight:400; line-height:1.5; z-index:30; white-space:normal; text-align:left}
+  .tip:hover>.tiptext, .tip:focus>.tiptext, .tip:focus-within>.tiptext{display:block}
   .search{position:relative; margin-top:12px}
   .search input{
     width:100%; font-size:16px; padding:13px 40px 13px 42px; border-radius:13px;
@@ -122,7 +137,7 @@
   .answer .a .schr .shtime{flex:0 0 auto; min-width:88px; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap}
   .answer .a .schr .shdet{flex:1; min-width:0}
   .answer .a .bl{margin:12px 0 2px}
-  .answer .a .ainote{font-size:12px; color:var(--muted); line-height:1.45; margin:12px 0 0; padding-top:9px; border-top:1px dashed var(--line)}
+  .answer .a .ainoterow{font-size:12px; margin:12px 0 0; padding-top:9px; border-top:1px dashed var(--line)}
   .answer .asrc{margin-top:11px; padding-top:9px; border-top:1px solid var(--line); font-size:11.5px; color:var(--muted)}
   .answer .asrc a{color:inherit; text-decoration:underline}
   .sec-h:focus-visible, .item-h:focus-visible{outline:2px solid var(--peri); outline-offset:-2px}
@@ -158,9 +173,9 @@
   .disc{font-size:11.5px; color:var(--muted); text-align:center; padding:4px 8px 0}
   /* Unified ask + source links */
   .askform{display:flex; gap:8px; align-items:flex-end; margin-top:12px}
-  .askform textarea{flex:1; resize:none; font:inherit; font-size:16px; padding:12px 14px; border-radius:13px; border:1px solid var(--line); background:var(--card); color:var(--ink); box-shadow:var(--shadow); max-height:120px; overflow-y:auto}
+  .askform textarea{flex:1; resize:none; font:inherit; font-size:16px; line-height:1.4; padding:14px; border-radius:13px; border:1px solid var(--line); background:var(--card); color:var(--ink); box-shadow:var(--shadow); min-height:54px; max-height:140px; overflow-y:auto}
   .askform textarea:focus{outline:2px solid var(--peri); outline-offset:1px; border-color:transparent}
-  .askform button{flex:0 0 auto; font:inherit; font-weight:600; padding:0 18px; height:46px; border:0; border-radius:13px; background:var(--accent); color:#fff; cursor:pointer}
+  .askform button{flex:0 0 auto; font:inherit; font-weight:600; padding:0 18px; height:54px; border:0; border-radius:13px; background:var(--accent); color:#fff; cursor:pointer}
   .askform button:disabled{opacity:.5; cursor:default}
   .substatus{font-size:12px; color:var(--muted); margin:9px 2px 0; line-height:1.4}
   .substatus .link{color:var(--accent); background:none; border:0; font:inherit; font-size:12px; cursor:pointer; padding:0; text-decoration:underline}
@@ -171,6 +186,14 @@
   .srcpill{display:inline-block; font-size:12px; color:var(--accent); text-decoration:none; border:1px solid var(--line); border-radius:999px; padding:2px 9px; background:var(--card)}
   .msg .src a{color:inherit; text-decoration:underline}
 </style>
+<script>
+/* Apply the saved theme before first paint so there's no flash of the wrong mode. */
+(function(){try{var t=localStorage.getItem('ba-theme'),d=document.documentElement;
+  if(t==='light'||t==='dark')d.setAttribute('data-theme',t);
+  var dark=t?t==='dark':(window.matchMedia&&matchMedia('(prefers-color-scheme:dark)').matches);
+  var m=document.querySelector('meta[name="theme-color"]'); if(m)m.setAttribute('content',dark?'#0f1420':'#f4f6fb');
+}catch(e){}})();
+</script>
 </head>
 <body>
 <header>
@@ -181,9 +204,10 @@
         <h1>Baby Answers</h1>
         <p>Newborn to toddler · Moms on Call + Cribsheet</p>
       </div>
+      <button id="themeToggle" class="themebtn" type="button" aria-label="Switch light or dark theme" title="Light / dark">🌙</button>
     </div>
     <form class="askform" id="askForm">
-      <textarea id="askInput" rows="1" placeholder="Ask anything — “how long should they sleep?”" aria-label="Ask a question"></textarea>
+      <textarea id="askInput" rows="1" placeholder="Ask anything about your baby…" aria-label="Ask a question"></textarea>
       <button type="submit" id="askSend">Ask</button>
     </form>
     <div class="substatus" id="substatus"></div>
@@ -203,11 +227,9 @@
 
 <footer>
   <div class="wrap">
-    <p><b>What this is.</b> A personal quick-reference that summarizes two parenting resources: the free
-      <b>Moms on Call</b> guides (routine, sleep, feeding, solids, safety &amp; toddler) and chapter takeaways from
-      <b>Cribsheet</b> by economist Emily Oster (what the research does and doesn't show).</p>
-    <p><b>Not medical advice.</b> It's a memory aid, not a substitute for your pediatrician. For anything
-      urgent — or a fever — call your doctor. Always follow current AAP safe-sleep guidance.</p>
+    <p>A personal quick-reference from the Moms on Call guides &amp; Emily Oster's Cribsheet — not medical advice.
+      <span class="tip" tabindex="0" role="button" aria-label="Disclaimer">Disclaimer<span class="tiptext">A personal quick-reference that summarizes two parenting resources: the Moms on Call guides (routine, sleep, feeding, solids, safety &amp; toddler) and chapter takeaways from Cribsheet by economist Emily Oster. It's a memory aid, not a substitute for your pediatrician. For anything urgent — or a fever — call your doctor. Always follow current AAP safe-sleep guidance.</span></span>
+    </p>
   </div>
 </footer>
 
@@ -317,7 +339,7 @@ var AI_CONFIG = {
       var blm=t.match(/^\**\s*bottom line\s*[:*]*\s*(.*)$/i);
       if(blm){ flush(); out+='<div class="bl"><b>Bottom line</b><p>'+inlineMD(blm[1])+'</p></div>'; return; }
       var nm=t.match(/^\**\s*note\s*[:*]*\s*(.*)$/i);
-      if(nm){ flush(); out+='<div class="ainote">'+inlineMD(nm[1])+'</div>'; return; }
+      if(nm){ flush(); out+='<div class="ainoterow"><span class="tip" tabindex="0" role="button" aria-label="Disclaimer">Disclaimer<span class="tiptext">'+inlineMD(nm[1])+'</span></span></div>'; return; }
       var body=t.replace(/^[-*•]\s+/,'');
       var sm=body.match(SCHED_RE);
       if(sm){ flush(); out+='<div class="schr"><span class="shtime">'+esc(sm[1])+'</span><span class="shdet">'+inlineMD(sm[2])+'</span></div>'; return; }
@@ -341,8 +363,18 @@ var AI_CONFIG = {
     return items.map(function(it){ var hit=0,score=0; groups.forEach(function(g){ var inT=g.some(function(v){return it.q.toLowerCase().indexOf(v)>=0;}); var inH=g.some(function(v){return it.hay.indexOf(v)>=0;}); if(inH){hit++;score+=inT?3:1;} }); return {it:it,hit:hit,score:score}; })
       .filter(function(x){return x.hit>0;}).sort(function(a,b){return (b.hit-a.hit)||(b.score-a.score);}).slice(0,n).map(function(x){return x.it;});
   }
+  // Core reference entries that carry the per-age specifics (feed frequency, feed
+  // duration, ounces, nap counts/lengths). Always include them so schedule/day
+  // answers can be complete, even if keyword retrieval didn't surface them.
+  var CORE_Q=[
+    'How much and how often should my newborn eat?',
+    'Naptime by age — how many naps and how long',
+    'Moms on Call “Typical Day” schedules (2 weeks to 4 months)'
+  ];
+  function byQ(q){ for(var i=0;i<items.length;i++){ if(items[i].q===q) return items[i]; } return null; }
   function contextFor(q){
     var top=retrieve(q,8); if(!top.length) top=items.slice(0,6);
+    CORE_Q.forEach(function(cq){ var it=byQ(cq); if(it && top.indexOf(it)<0) top.push(it); });
     return top.map(function(it){ return '### '+it.topic+' — '+it.q+' ['+it.label+']\n'+it.body.map(function(b){return '- '+b;}).join('\n')+(it.bl&&it.bl.length?('\nBottom line: '+it.bl.join(' ')):''); }).join('\n\n');
   }
   // List the actual guide entries the answer drew from (Moms on Call book paraphrases
@@ -357,7 +389,7 @@ var AI_CONFIG = {
     });
     return out;
   }
-  var BASE_SYS="You are Baby Answers, a warm, concise assistant for parents. Answer ONLY using the SOURCE MATERIAL below (paraphrased guidance from the Moms on Call books/guides and Emily Oster's Cribsheet). Never give medication doses. For anything urgent, or any fever in a baby under 3 months, tell them to call their doctor now. When Moms on Call (routine) and Cribsheet (evidence) differ, you may note both.\n\nSTYLE — start with the actual answer. Do NOT open with disclaimers, apologies, or phrases like 'I don't have that in my sources' or 'I suggest asking your pediatrician' at the top. Be practical and brief.\n\nFORMATTING (follow exactly):\n- For lists, put each item on its own line starting with '- ' (a hyphen and a space). Do not use '*' for bullets.\n- You may bold a short lead-in label with double asterisks, e.g. '- **Infants:** short catnaps are common.'\n- For a daily schedule/routine, put each time step on its own line as 'TIME — activity' (e.g. '7 am — wake + milk', '12:30 pm — nap'), using an em dash (—) and 12-hour times with am/pm (or 'noon'). Prefix a section label with '§ ' on its own line (e.g. '§ 4–8 weeks').\n- If useful, end with one line starting exactly 'Bottom line:' summarizing the key point.\n- If (and only if) a brief safety caveat or 'the sources don't fully cover this — check with your pediatrician' note is needed, put it as the VERY LAST line, starting exactly 'Note:', in one short sentence. Never put such a caveat first.";
+  var BASE_SYS="You are Baby Answers, a warm, concise assistant for parents. Answer ONLY using the SOURCE MATERIAL below (paraphrased guidance from the Moms on Call books/guides and Emily Oster's Cribsheet). Never give medication doses. For anything urgent, or any fever in a baby under 3 months, tell them to call their doctor now. When Moms on Call (routine) and Cribsheet (evidence) differ, you may note both.\n\nSTYLE — start with the actual answer. Do NOT open with disclaimers, apologies, or phrases like 'I don't have that in my sources' or 'I suggest asking your pediatrician' at the top. Be practical, but be COMPLETE.\n\nCOMPLETENESS — when the question is about a daily routine, schedule, feeding, or 'typical day' for a given age, include the concrete specifics the sources give for that age: how often to feed, how long each feed should take, how many ounces per feed (or nursing minutes), AND when naps happen and how long they last. Pull these from the source material even when they live in different sections. Do not give only the feed clock-times — include amounts, feed duration, and nap timing/length whenever the sources have them.\n\nFORMATTING (follow exactly):\n- For lists, put each item on its own line starting with '- ' (a hyphen and a space). Do not use '*' for bullets.\n- You may bold a short lead-in label with double asterisks, e.g. '- **Infants:** short catnaps are common.'\n- For a daily schedule/routine, put each time step on its own line as 'TIME — activity' (e.g. '7 am — wake + milk', '12:30 pm — nap'), using an em dash (—) and 12-hour times with am/pm (or 'noon'). Prefix a section label with '§ ' on its own line (e.g. '§ 4–8 weeks').\n- If useful, end with one line starting exactly 'Bottom line:' summarizing the key point.\n- If (and only if) a brief safety caveat or 'the sources don't fully cover this — check with your pediatrician' note is needed, put it as the VERY LAST line, starting exactly 'Note:', in one short sentence. Never put such a caveat first.";
 
   var TOPIC_ORDER=['Sleep','Feeding','Routine','Soothing','Health','Safety','Newborn','Development','Toddler','Parenting'];
   function topicRank(t){ var i=TOPIC_ORDER.indexOf(t); return i<0?99:i; }
@@ -443,8 +475,17 @@ var AI_CONFIG = {
   }
 
   form.addEventListener('submit',function(e){ e.preventDefault(); var t=input.value.trim(); if(t){ input.value=''; input.style.height='auto'; onAsk(t); } });
-  input.addEventListener('input',function(){ input.style.height='auto'; input.style.height=Math.min(input.scrollHeight,120)+'px'; });
+  input.addEventListener('input',function(){ input.style.height='auto'; input.style.height=Math.min(input.scrollHeight,140)+'px'; });
   input.addEventListener('keydown',function(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); if(form.requestSubmit) form.requestSubmit(); else onAsk(input.value); } });
+
+  // ---- theme (light/dark) toggle ----
+  var themeMQ=window.matchMedia?matchMedia('(prefers-color-scheme:dark)'):null;
+  function themeIsDark(){ var t=document.documentElement.getAttribute('data-theme'); return t? t==='dark' : !!(themeMQ&&themeMQ.matches); }
+  function paintTheme(){ var b=document.getElementById('themeToggle'); if(b) b.textContent=themeIsDark()?'☀️':'🌙'; var m=document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute('content', themeIsDark()?'#0f1420':'#f4f6fb'); }
+  var tgl=document.getElementById('themeToggle');
+  if(tgl) tgl.addEventListener('click',function(){ var next=themeIsDark()?'light':'dark'; try{localStorage.setItem('ba-theme',next);}catch(e){} document.documentElement.setAttribute('data-theme',next); paintTheme(); });
+  if(themeMQ&&themeMQ.addEventListener) themeMQ.addEventListener('change',function(){ if(!document.documentElement.getAttribute('data-theme')) paintTheme(); });
+  paintTheme();
 
   renderBrowse();
   updateSub();
