@@ -61,7 +61,9 @@ exports.askBaby = onRequest(
       if (ALLOW.indexOf(email) === -1) { res.status(403).json({ error: 'This account is not on the allow-list.' }); return; }
 
       const body = req.body || {};
-      const system = String(body.system || '').slice(0, 24000);
+      // The app sends its entire source library (~60k chars) in `system` so answers
+      // are compiled from all sources; allow room for it plus the prompt.
+      const system = String(body.system || '').slice(0, 200000);
       let messages = Array.isArray(body.messages) ? body.messages.slice(-8) : [];
       messages = messages
         .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')

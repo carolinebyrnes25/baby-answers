@@ -363,19 +363,15 @@ var AI_CONFIG = {
     return items.map(function(it){ var hit=0,score=0; groups.forEach(function(g){ var inT=g.some(function(v){return it.q.toLowerCase().indexOf(v)>=0;}); var inH=g.some(function(v){return it.hay.indexOf(v)>=0;}); if(inH){hit++;score+=inT?3:1;} }); return {it:it,hit:hit,score:score}; })
       .filter(function(x){return x.hit>0;}).sort(function(a,b){return (b.hit-a.hit)||(b.score-a.score);}).slice(0,n).map(function(x){return x.it;});
   }
-  // Core reference entries that carry the per-age specifics (feed frequency, feed
-  // duration, ounces, nap counts/lengths). Always include them so schedule/day
-  // answers can be complete, even if keyword retrieval didn't surface them.
-  var CORE_Q=[
-    'How much and how often should my newborn eat?',
-    'Naptime by age — how many naps and how long',
-    'Moms on Call “Typical Day” schedules (2 weeks to 4 months)'
-  ];
-  function byQ(q){ for(var i=0;i<items.length;i++){ if(items[i].q===q) return items[i]; } return null; }
+  function fmtEntry(it){ return '### '+it.topic+' — '+it.q+' ['+it.label+']\n'+it.body.map(function(b){return '- '+b;}).join('\n')+(it.bl&&it.bl.length?('\nBottom line: '+it.bl.join(' ')):''); }
+  // Send the ENTIRE library to the model every time (it's small — ~14k tokens), so
+  // the answer is compiled from all sources, not just keyword-matched top hits.
+  // The most relevant entries are listed first as a focus hint; the rest follow.
   function contextFor(q){
-    var top=retrieve(q,8); if(!top.length) top=items.slice(0,6);
-    CORE_Q.forEach(function(cq){ var it=byQ(cq); if(it && top.indexOf(it)<0) top.push(it); });
-    return top.map(function(it){ return '### '+it.topic+' — '+it.q+' ['+it.label+']\n'+it.body.map(function(b){return '- '+b;}).join('\n')+(it.bl&&it.bl.length?('\nBottom line: '+it.bl.join(' ')):''); }).join('\n\n');
+    var rel=retrieve(q,14), seen={};
+    rel.forEach(function(it){ seen[it.q]=1; });
+    var rest=items.filter(function(it){ return !seen[it.q]; });
+    return rel.concat(rest).map(fmtEntry).join('\n\n');
   }
   // List the actual guide entries the answer drew from (Moms on Call book paraphrases
   // and Cribsheet), linking to the free handout PDF when one exists for that entry.
@@ -389,7 +385,7 @@ var AI_CONFIG = {
     });
     return out;
   }
-  var BASE_SYS="You are Baby Answers, a warm, concise assistant for parents. Answer ONLY using the SOURCE MATERIAL below (paraphrased guidance from the Moms on Call books/guides and Emily Oster's Cribsheet). Never give medication doses. For anything urgent, or any fever in a baby under 3 months, tell them to call their doctor now. When Moms on Call (routine) and Cribsheet (evidence) differ, you may note both.\n\nSTYLE — start with the actual answer. Do NOT open with disclaimers, apologies, or phrases like 'I don't have that in my sources' or 'I suggest asking your pediatrician' at the top. Be practical, but be COMPLETE.\n\nCOMPLETENESS — when the question is about a daily routine, schedule, feeding, or 'typical day' for a given age, include the concrete specifics the sources give for that age: how often to feed, how long each feed should take, how many ounces per feed (or nursing minutes), AND when naps happen and how long they last. Pull these from the source material even when they live in different sections. Do not give only the feed clock-times — include amounts, feed duration, and nap timing/length whenever the sources have them.\n\nFORMATTING (follow exactly):\n- For lists, put each item on its own line starting with '- ' (a hyphen and a space). Do not use '*' for bullets.\n- You may bold a short lead-in label with double asterisks, e.g. '- **Infants:** short catnaps are common.'\n- For a daily schedule/routine, put each time step on its own line as 'TIME — activity' (e.g. '7 am — wake + milk', '12:30 pm — nap'), using an em dash (—) and 12-hour times with am/pm (or 'noon'). Prefix a section label with '§ ' on its own line (e.g. '§ 4–8 weeks').\n- If useful, end with one line starting exactly 'Bottom line:' summarizing the key point.\n- If (and only if) a brief safety caveat or 'the sources don't fully cover this — check with your pediatrician' note is needed, put it as the VERY LAST line, starting exactly 'Note:', in one short sentence. Never put such a caveat first.";
+  var BASE_SYS="You are Baby Answers, a warm, concise assistant for parents. The SOURCE MATERIAL below is the COMPLETE reference library for this app (every Moms on Call and Cribsheet entry). Answer ONLY from it, but read across ALL of it and COMPILE a complete answer — pull every relevant detail, even when the pieces live in different entries or sections (e.g. combine the age-specific feeding amounts, the 'Typical Day' schedule, and the naptime guidance into one coherent answer). If the exact age isn't covered, use the closest covered age and say so briefly. Never give medication doses. For anything urgent, or any fever in a baby under 3 months, tell them to call their doctor now. When Moms on Call (routine) and Cribsheet (evidence) differ, you may note both.\n\nSTYLE — start with the actual answer. Do NOT open with disclaimers, apologies, or phrases like 'I don't have that in my sources' or 'I suggest asking your pediatrician' at the top. Be practical, but be COMPLETE.\n\nCOMPLETENESS — when the question is about a daily routine, schedule, feeding, or 'typical day' for a given age, include the concrete specifics the sources give for that age: how often to feed, how long each feed should take, how many ounces per feed (or nursing minutes), AND when naps happen and how long they last. Pull these from the source material even when they live in different sections. Do not give only the feed clock-times — include amounts, feed duration, and nap timing/length whenever the sources have them.\n\nFORMATTING (follow exactly):\n- For lists, put each item on its own line starting with '- ' (a hyphen and a space). Do not use '*' for bullets.\n- You may bold a short lead-in label with double asterisks, e.g. '- **Infants:** short catnaps are common.'\n- For a daily schedule/routine, put each time step on its own line as 'TIME — activity' (e.g. '7 am — wake + milk', '12:30 pm — nap'), using an em dash (—) and 12-hour times with am/pm (or 'noon'). Prefix a section label with '§ ' on its own line (e.g. '§ 4–8 weeks').\n- If useful, end with one line starting exactly 'Bottom line:' summarizing the key point.\n- If (and only if) a brief safety caveat or 'the sources don't fully cover this — check with your pediatrician' note is needed, put it as the VERY LAST line, starting exactly 'Note:', in one short sentence. Never put such a caveat first.";
 
   var TOPIC_ORDER=['Sleep','Feeding','Routine','Soothing','Health','Safety','Newborn','Development','Toddler','Parenting'];
   function topicRank(t){ var i=TOPIC_ORDER.indexOf(t); return i<0?99:i; }
