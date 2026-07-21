@@ -108,6 +108,12 @@
   .item-body li.schr{list-style:none; display:flex; gap:10px; margin:3px 0 3px -19px}
   .item-body li.schr .shtime{flex:0 0 auto; min-width:88px; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap}
   .item-body li.schr .shdet{flex:1; min-width:0}
+  .msg.ai p{margin:0 0 8px}
+  .msg.ai p:last-child{margin-bottom:0}
+  .msg.ai .subh{font-weight:700; font-size:13px; margin:12px 0 4px}
+  .msg.ai .schr{display:flex; gap:10px; margin:3px 0}
+  .msg.ai .schr .shtime{flex:0 0 auto; min-width:88px; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap}
+  .msg.ai .schr .shdet{flex:1; min-width:0}
   .sec-h:focus-visible, .item-h:focus-visible{outline:2px solid var(--peri); outline-offset:-2px}
   @media (prefers-reduced-motion: reduce){ .chev{transition:none} }
   .empty{text-align:center; color:var(--muted); padding:48px 16px}
@@ -275,13 +281,31 @@ var AI_CONFIG = {
   function terms(q){ return q.toLowerCase().split(/[^a-z0-9]+/).filter(function(w){return w&&!STOP[w];}).map(variants); }
   function esc(s){return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
 
-  // A bullet is rendered as an aligned schedule row when it starts with a clock time
-  // followed by " — " (e.g. "7 am — wake + milk"); "§ " prefixes a sub-heading.
+  // A line is an aligned schedule row when it starts with a clock time followed
+  // by " — " (e.g. "7 am — wake + milk"); "§ " prefixes a sub-heading.
+  var SCHED_RE=/^(~?[\d:]{1,5}(?:\s?[–\-\/]\s?~?[\d:]{1,5})?\s*(?:am|pm|noon))\s+—\s+([\s\S]+)$/i;
   function bulletHTML(b){
     if(b.indexOf('§ ')===0){ return '<li class="subh">'+esc(b.slice(2))+'</li>'; }
-    var m=b.match(/^(~?[\d:]{1,5}(?:\s?[–\-\/]\s?~?[\d:]{1,5})?\s*(?:am|pm|noon))\s+—\s+([\s\S]+)$/i);
+    var m=b.match(SCHED_RE);
     if(m){ return '<li class="schr"><span class="shtime">'+esc(m[1])+'</span><span class="shdet">'+esc(m[2])+'</span></li>'; }
     return '<li>'+esc(b)+'</li>';
+  }
+  // Render an AI answer, turning "§ " sub-headers and "TIME — detail" lines into
+  // the same styled schedule layout used by the guide cards.
+  function aiHTML(text){
+    var out='', para=[];
+    function flush(){ if(para.length){ out+='<p>'+para.join('<br>')+'</p>'; para=[]; } }
+    String(text).split('\n').forEach(function(ln){
+      var t=ln.trim();
+      if(t===''){ flush(); return; }
+      if(t.indexOf('§ ')===0){ flush(); out+='<div class="subh">'+esc(t.slice(2))+'</div>'; return; }
+      var body=t.replace(/^[-*•]\s+/,'');
+      var m=body.match(SCHED_RE);
+      if(m){ flush(); out+='<div class="schr"><span class="shtime">'+esc(m[1])+'</span><span class="shdet">'+esc(m[2])+'</span></div>'; return; }
+      para.push(esc(body));
+    });
+    flush();
+    return out;
   }
   function answerHTML(it){
     var body='<ul>'+it.body.map(bulletHTML).join('')+'</ul>';
@@ -308,7 +332,7 @@ var AI_CONFIG = {
     if(cribs) out.push('Cribsheet (Emily Oster)');
     return out;
   }
-  var BASE_SYS="You are Baby Answers, a warm, concise assistant for parents. Answer ONLY using the SOURCE MATERIAL below (from the free Moms on Call guides and Emily Oster's Cribsheet). If the answer isn't in those sources, say you don't have it in your sources and suggest asking their pediatrician — don't guess or invent. Be practical and brief: a few sentences or short bullets. Never give medication doses. For anything urgent, or any fever in a baby under 3 months, tell them to call their doctor now. When Moms on Call (routine) and Cribsheet (evidence) differ, you may note both. Add a one-line 'Bottom line' when useful.";
+  var BASE_SYS="You are Baby Answers, a warm, concise assistant for parents. Answer ONLY using the SOURCE MATERIAL below (from the free Moms on Call guides and Emily Oster's Cribsheet). If the answer isn't in those sources, say you don't have it in your sources and suggest asking their pediatrician — don't guess or invent. Be practical and brief: a few sentences or short bullets. Never give medication doses. For anything urgent, or any fever in a baby under 3 months, tell them to call their doctor now. When Moms on Call (routine) and Cribsheet (evidence) differ, you may note both. Add a one-line 'Bottom line' when useful. FORMAT: when you give a daily schedule or routine, put each time step on its own line in the exact form 'TIME — activity' (e.g. '7 am — wake + milk', '12:30 pm — nap'); use an em dash (—) between the time and the activity, and use 12-hour times with am/pm (or 'noon'). Prefix a section label with '§ ' on its own line (e.g. '§ 4–8 weeks'). Keep any non-schedule explanation as normal sentences.";
 
   var TOPIC_ORDER=['Sleep','Feeding','Routine','Soothing','Health','Safety','Newborn','Development','Toddler','Parenting'];
   function topicRank(t){ var i=TOPIC_ORDER.indexOf(t); return i<0?99:i; }
@@ -354,7 +378,7 @@ var AI_CONFIG = {
   function bubble(m){
     if(m.role==='user') return '<div class="msg you">'+esc(m.content)+'</div>';
     var src=m.srcHTML?'<span class="src">Sources: '+m.srcHTML+'</span>':'';
-    return '<div class="msg ai">'+esc(m.content).replace(/\n/g,'<br>')+src+'</div>';
+    return '<div class="msg ai">'+aiHTML(m.content)+src+'</div>';
   }
   function card(it){ return '<article class="card"><div class="top"><span class="badge '+it.src+'">'+it.label+'</span><span class="topic">'+esc(it.topic)+'</span></div><h2>'+esc(it.q)+'</h2>'+answerHTML(it)+srcRow(it)+'</article>'; }
   function showAnswer(){ browseWrap.hidden=true; convo.hidden=false; }
