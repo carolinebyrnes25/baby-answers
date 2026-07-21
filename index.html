@@ -156,30 +156,67 @@ var CRIB = [{"topic":"Decisions","q":"How does Cribsheet say to make these decis
       chipsEl=document.getElementById('chips');
   var srcFilter='all', query='';
 
+  // Ignore filler words so natural questions ("how long should they sleep") still match.
+  var STOP={a:1,an:1,the:1,is:1,are:1,be:1,been:1,to:1,of:1,for:1,and:1,or:1,my:1,i:1,we:1,us:1,our:1,you:1,your:1,
+    it:1,its:1,that:1,this:1,these:1,those:1,with:1,without:1,on:1,in:1,at:1,by:1,do:1,does:1,did:1,how:1,what:1,
+    whats:1,when:1,why:1,where:1,which:1,who:1,should:1,would:1,could:1,can:1,will:1,if:1,so:1,me:1,they:1,them:1,
+    their:1,he:1,she:1,his:1,her:1,him:1,get:1,gets:1,got:1,much:1,many:1,long:1,often:1,about:1,from:1,as:1,was:1,
+    were:1,has:1,have:1,had:1,am:1,any:1,some:1,need:1,needs:1,want:1,wants:1,tell:1,know:1,vs:1,also:1,just:1,
+    baby:1,babys:1,babies:1,newborn:1,newborns:1,infant:1,infants:1,old:1,mine:1,he:1,too:1,there:1,here:1};
+  // Broaden a word to related terms so "sleep" also finds naps/night/bedtime, etc.
+  var SYN={sleep:['nap','naps','night','bedtime','wake','drowsy','regression','settle','asleep'],nap:['sleep','naps','catnap'],
+    feed:['feeding','eat','eating','bottle','nurse','nursing','ounce','ounces','milk','formula','breast','hungry'],
+    eat:['feed','feeding','food','solid','solids','ounce'],hungry:['feed','cluster','growth'],poop:['diaper','stool','bowel'],
+    pee:['diaper','wet'],diaper:['rash','wet','stool'],fever:['temperature','sick','ill','doctor'],sick:['fever','cold','congestion'],
+    cry:['crying','colic','fussy','witching','soothe'],crying:['colic','fussy','witching'],colic:['crying','fussy'],
+    swaddle:['swaddling','startle','wrap','sack'],solid:['solids','food','weaning','puree','allergen','allergens'],
+    solids:['food','weaning','puree','allergen','allergens'],allergen:['peanut','egg','allergy','allergens','leap'],
+    peanut:['allergen','allergy','leap'],vaccine:['vaccines','vaccination','shots','immunization','autism'],
+    vaccines:['vaccination','shots','autism'],schedule:['routine','wake','nap'],routine:['schedule','bedtime'],
+    soothe:['soothing','calm','settle','pacifier'],gas:['burp','burping','hiccups','bicycle'],pacifier:['soothe','suck'],
+    tummy:['tummytime'],milestone:['milestones','rolling','sitting','smile','crawling','walking'],
+    breastfeed:['breastfeeding','nurse','latch','supply'],bath:['bathing','cord','sponge']};
+  function stem(t){ return t.replace(/ies$/,'y').replace(/(ing|ed|es|s)$/,''); }
+  function variants(w){
+    var v=[w]; var s=stem(w); if(s&&s!==w) v.push(s);
+    if(SYN[w]) v=v.concat(SYN[w]); if(SYN[s]) v=v.concat(SYN[s]);
+    return v.filter(function(x,i,a){return x&&x.length>1&&a.indexOf(x)===i;});
+  }
+  function terms(q){
+    return q.toLowerCase().split(/[^a-z0-9]+/).filter(function(w){return w&&!STOP[w];}).map(variants);
+  }
+  var HLW=[];
   function esc(s){return s.replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
   function hl(s){
-    if(!query) return esc(s);
-    var toks=query.split(/\s+/).filter(Boolean).map(function(t){return t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');});
-    if(!toks.length) return esc(s);
+    if(!HLW.length) return esc(s);
     var out=esc(s);
-    try{ out=out.replace(new RegExp('('+toks.join('|')+')','ig'),'<mark>$1</mark>'); }catch(e){}
+    try{ out=out.replace(new RegExp('('+HLW.join('|')+')','ig'),'<mark>$1</mark>'); }catch(e){}
     return out;
   }
 
   function render(){
-    var toks=query.toLowerCase().split(/\s+/).filter(Boolean);
-    var list=items.filter(function(it){
-      if(srcFilter!=='all' && it.src!==srcFilter) return false;
-      if(!toks.length) return true;
-      return toks.every(function(t){ return it.hay.indexOf(t)>=0; });
-    });
-    if(toks.length){
-      list.forEach(function(it){ it._score=toks.reduce(function(a,t){return a+(it.q.toLowerCase().indexOf(t)>=0?2:0)+(it.hay.split(t).length-1);},0); });
-      list.sort(function(a,b){return b._score-a._score;});
+    var groups=terms(query);
+    // highlight only the meaningful words the user actually typed (+ stems), not synonyms
+    HLW=query.toLowerCase().split(/[^a-z0-9]+/).filter(function(w){return w&&!STOP[w]&&w.length>1;})
+        .reduce(function(a,w){var s=stem(w); return s&&s!==w?a.concat([w,s]):a.concat([w]);},[])
+        .map(function(t){return t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');});
+    var list=items.filter(function(it){ return srcFilter==='all'||it.src===srcFilter; });
+    if(groups.length){
+      list.forEach(function(it){
+        var hit=0, score=0;
+        groups.forEach(function(g){
+          var inTitle=g.some(function(v){return it.q.toLowerCase().indexOf(v)>=0;});
+          var inTags=g.some(function(v){return it.hay.indexOf(v)>=0;});
+          if(inTags){ hit++; score+=inTitle?3:1; }
+        });
+        it._hit=hit; it._score=score;
+      });
+      list=list.filter(function(it){return it._hit>0;});
+      list.sort(function(a,b){ return (b._hit-a._hit)||(b._score-a._score); });
     }
     countEl.textContent = list.length + (list.length===1?' answer':' answers') + (query?(' for “'+query+'”'):'');
     if(!list.length){
-      resEl.innerHTML='<div class="empty"><div class="big">🍼</div><p>No match. Try a simpler word like <b>sleep</b>, <b>feeding</b>, <b>swaddle</b>, or <b>fever</b>.</p></div>';
+      resEl.innerHTML='<div class="empty"><div class="big">🍼</div><p>No match yet. Try key words like <b>sleep</b>, <b>feeding</b>, <b>swaddle</b>, <b>fever</b>, or <b>vaccines</b>.</p></div>';
       return;
     }
     resEl.innerHTML=list.map(function(it){
