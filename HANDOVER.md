@@ -40,9 +40,17 @@ The **Ask** box synthesizes answers via a deployed Firebase backend.
 - **Access:** Google sign-in enabled; `carolinebyrnes25.github.io` is an authorized domain. Runtime
   ALLOW list (in `functions/index.js`): `carolinebyrnes25@gmail.com`, `luke.f.byrnes@gmail.com`,
   `byrnesfam25@gmail.com`. Caroline signs into the app as **carolinebyrnes25** (on the list).
-- **To change who can use it / the model:** edit `ALLOW` (or params) in `functions/index.js`, then
-  `firebase deploy --only functions` from a clone (deploy account = cfroehlich14). `npm install`
-  inside `functions/` first — deps aren't committed.
+- **Deploys are automated via CI** (`.github/workflows/deploy-functions.yml`). Any push to `main`
+  that touches `functions/**` (or a manual "Deploy Cloud Function" run / `run_workflow` dispatch)
+  redeploys `askBaby`. Auth = a Google **service account scoped to only the baby-answers project**,
+  stored as the repo secret **`FIREBASE_SERVICE_ACCOUNT`** (created under cfroehlich14). So Claude can
+  ship function changes by pushing — no local `firebase deploy` needed.
+- **Non-secret params** (`AI_PROVIDER=gemini`, `AI_MODEL=gemini-flash-latest`) live in the committed
+  `functions/.env.baby-answers` (required for non-interactive CI deploys). The Gemini key is NOT there.
+- **To change who can use it / the model:** edit `ALLOW` (or `functions/.env.baby-answers`) and push —
+  CI redeploys automatically.
+- **Note:** `gemini-flash-latest` is a thinking model; the function sets `thinkingConfig.thinkingBudget: 0`
+  and `maxOutputTokens: 1200` so answers don't truncate mid-sentence.
 
 ## Sourcing & copyright (important)
 - The **free handout PDFs** are public → saved in `sources/` and linked. Fine to keep.
