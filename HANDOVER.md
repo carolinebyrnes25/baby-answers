@@ -16,16 +16,27 @@ handouts) and **Cribsheet** (Emily Oster). Built for Caroline & Luke Byrnes.
   `var CRIB=[…]` JSON arrays near the bottom, then the app IIFE).
 - **72 answers** (50 Moms on Call + 22 Cribsheet), grouped into topics: Sleep, Feeding, Routine,
   Soothing, Health, Safety, Newborn, Development, Toddler, Parenting.
-- **Unified "Ask" UI** (the user explicitly wanted ONE ask box, not tabs): the header has one ask
-  input. Asking → an **AI-synthesized** answer from the guides *once the backend is turned on*;
-  until then it **gracefully falls back** to the best-matching guide cards. Below the ask box, all
-  guides are **browsable by topic** (collapsible sections → titles → full answer).
-- **Source links:** answers and guide cards link out to the relevant **`sources/*.pdf`** (12 free
-  Moms on Call handout PDFs, saved in the repo). Cribsheet is cited by name (it's a book, no PDF).
-  Mapping lives in the `GUIDES` array in the app JS (keyword → pdf).
-- **PWA:** `manifest.webmanifest`, `sw.js` (offline; cache is `baby-answers-v10` — bump the version
-  on content changes so installed apps refresh; PDFs are network-only, not cached). Icons in
-  `icons/` (generated via headless Chromium — see below).
+- **Unified "Ask" UI** (the user wanted ONE ask box, not tabs). Asking (signed in) → an
+  **AI answer** rendered in ONE connected card under the ask box (question echoed as a heading;
+  `renderThread`/`turnHTML`/`aiHTML`), NOT chat bubbles. Signed-out → graceful fallback to matching
+  guide cards. Below, all guides **browse by topic**.
+- **Answering system (IMPORTANT, redesigned):** the app sends its **ENTIRE source library** (~14k
+  tokens, all 72 entries, most-relevant-first) to the model on every question — see `contextFor`,
+  which no longer keyword-limits to top-N. The model **compiles across all sources** (feed amounts +
+  Typical Day schedule + naptime, etc.) into one complete answer. The function's `system` input cap
+  was raised to 200k chars to fit it. Prompt (`BASE_SYS`) demands completeness (feed frequency/
+  duration/oz + nap timing) and forbids leading disclaimers.
+- **AI answer formatting (`aiHTML`):** parses "- " bullets + `**bold**`, "§ " sub-headers, "TIME —
+  detail" schedule rows (shared `SCHED_RE`, also used by guide cards via `bulletHTML`), a boxed
+  "Bottom line:", and a "Note:" caveat rendered as a small **"Disclaimer" tooltip** (`.tip`/`.tiptext`).
+- **Sources line (`sourceLinks`):** lists the actual entries used ("Moms on Call — …", "Cribsheet —
+  …"), linking the free handout PDF when one exists. Not just PDFs anymore.
+- **Light/dark:** manual toggle in the header (🌙/☀️), persisted in `localStorage['ba-theme']`,
+  overrides the OS via `:root[data-theme=...]`; an inline `<head>` script applies it pre-paint. A
+  single `<meta name=theme-color>` is updated by JS.
+- **PWA:** `manifest.webmanifest`, `sw.js` (offline; cache is `baby-answers-v17` — BUMP on every
+  change so installed apps refresh; PDFs network-only). **Icons** in `icons/` are the sleeping-baby
+  logo (regenerated from a user photo via headless Chromium; favicon/apple-touch/header carry `?v=2`).
 
 ## The AI is now LIVE (deployed 2026-07-21)
 The **Ask** box synthesizes answers via a deployed Firebase backend.
