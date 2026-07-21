@@ -13,6 +13,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Baby Answers">
+<!-- Firebase is used only by the optional "Ask" tab; the rest of the app works without it. -->
+<script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
 <style>
   :root{
     --bg:#f4f6fb; --card:#ffffff; --ink:#1c2333; --muted:#5f6b85; --line:#e6e9f2;
@@ -110,6 +113,27 @@
   .safe{background:var(--moc-bg); border:1px solid color-mix(in srgb, var(--moc) 30%, transparent);
     border-radius:11px; padding:11px 13px; margin:0 0 14px; font-size:13px; color:var(--ink)}
   a{color:var(--accent)}
+  /* Tabs + Ask (AI chat) */
+  .tabs{display:flex; gap:5px; margin-top:12px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:4px; box-shadow:var(--shadow)}
+  .tab{flex:1; font:inherit; font-size:14px; font-weight:600; padding:8px 10px; border:0; border-radius:9px; background:none; color:var(--muted); cursor:pointer}
+  .tab[aria-pressed="true"]{background:var(--accent); color:#fff}
+  .thread{display:flex; flex-direction:column; gap:10px; padding:8px 0 6px}
+  .msg{max-width:88%; padding:10px 13px; border-radius:15px; font-size:14.5px; line-height:1.5; white-space:pre-wrap; overflow-wrap:anywhere}
+  .msg.you{align-self:flex-end; background:var(--accent); color:#fff; border-bottom-right-radius:5px}
+  .msg.ai{align-self:flex-start; background:var(--card); border:1px solid var(--line); box-shadow:var(--shadow); border-bottom-left-radius:5px}
+  .msg .src{display:block; margin-top:7px; padding-top:6px; border-top:1px solid var(--line); font-size:11px; color:var(--muted)}
+  .askstatus{font-size:13px; color:var(--muted); padding:2px 2px 8px}
+  .askbar{position:sticky; bottom:0; display:flex; gap:8px; align-items:flex-end; padding:8px 0 calc(10px + env(safe-area-inset-bottom)); background:var(--bg)}
+  .askbar textarea{flex:1; resize:none; font:inherit; font-size:16px; padding:11px 13px; border-radius:13px; border:1px solid var(--line); background:var(--card); color:var(--ink); box-shadow:var(--shadow); max-height:120px; overflow-y:auto}
+  .askbar textarea:focus{outline:2px solid var(--peri); outline-offset:1px; border-color:transparent}
+  .askbar button{flex:0 0 auto; font:inherit; font-weight:600; padding:0 16px; height:44px; border:0; border-radius:13px; background:var(--accent); color:#fff; cursor:pointer}
+  .askbar button:disabled{opacity:.5; cursor:default}
+  .aihint{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:var(--shadow); font-size:14px; line-height:1.55}
+  .aihint b{color:var(--ink)}
+  .signin{display:inline-flex; align-items:center; gap:8px; margin-top:12px; font:inherit; font-size:14px; font-weight:600; padding:10px 16px; border:1px solid var(--line); border-radius:12px; background:var(--card); color:var(--ink); cursor:pointer; box-shadow:var(--shadow)}
+  .whoami{display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--muted); padding:2px 2px 4px}
+  .whoami button{font:inherit; font-size:12px; background:none; border:0; color:var(--accent); cursor:pointer}
+  .disc{font-size:11.5px; color:var(--muted); text-align:center; padding:4px 8px 0}
 </style>
 </head>
 <body>
@@ -122,24 +146,33 @@
         <p>0–6 months · Moms on Call + Cribsheet</p>
       </div>
     </div>
-    <div class="search">
-      <span class="mag">⌕</span>
-      <input id="q" type="search" inputmode="search" autocomplete="off" autocapitalize="off"
-             spellcheck="false" placeholder="Ask a question… (sleep, feeding, fever)" aria-label="Search">
-      <button class="clr" id="clr" aria-label="Clear">×</button>
+    <div class="tabs" id="tabs">
+      <button class="tab" type="button" data-mode="guides" aria-pressed="true">Guides</button>
+      <button class="tab" type="button" data-mode="ask" aria-pressed="false">✨ Ask</button>
     </div>
-    <div class="chips" id="chips">
-      <button class="chip" data-src="all" aria-pressed="true">All</button>
-      <button class="chip" data-src="moc" aria-pressed="false">Moms on Call</button>
-      <button class="chip" data-src="crib" aria-pressed="false">Cribsheet</button>
+    <div id="guidesTop">
+      <div class="search">
+        <span class="mag">⌕</span>
+        <input id="q" type="search" inputmode="search" autocomplete="off" autocapitalize="off"
+               spellcheck="false" placeholder="Search sleep, feeding, fever…" aria-label="Search">
+        <button class="clr" id="clr" aria-label="Clear">×</button>
+      </div>
+      <div class="chips" id="chips">
+        <button class="chip" type="button" data-src="all" aria-pressed="true">All</button>
+        <button class="chip" type="button" data-src="moc" aria-pressed="false">Moms on Call</button>
+        <button class="chip" type="button" data-src="crib" aria-pressed="false">Cribsheet</button>
+      </div>
     </div>
   </div>
 </header>
 
 <main>
   <div class="wrap">
-    <div class="count" id="count"></div>
-    <div id="results"></div>
+    <div id="guidesView">
+      <div class="count" id="count"></div>
+      <div id="results"></div>
+    </div>
+    <div id="askView" hidden></div>
   </div>
 </main>
 
@@ -159,6 +192,18 @@ var MOC = [{"topic":"Feeding","q":"How much and how often should my newborn eat?
 
 /* ---------------- Cribsheet (Emily Oster) — chapter takeaways ---------------- */
 var CRIB = [{"topic":"Newborn","q":"The first hours: skin-to-skin, cord clamping, vitamin K, eye ointment","tags":["vitamin k","eye ointment","skin to skin","delayed cord clamping","newborn","first hours","cribsheet"],"chunks":["Vitamin K at birth prevents a rare but catastrophic bleeding disorder — the case for it is strong; declining it carries real risk.","Delayed cord clamping (waiting ~1 minute) modestly raises the baby's iron stores and is reasonable in most uncomplicated births.","Erythromycin eye ointment prevents certain serious newborn eye infections; it's routine and low-risk.","Skin-to-skin contact genuinely helps with warmth, calming, bonding, and early feeding — and it's free."],"bl":["Say yes to vitamin K — skipping it risks serious bleeding.","Delayed cord clamping and skin-to-skin are low-cost, well-supported wins in the first hour."]},{"topic":"Newborn","q":"Circumcision — what does the evidence say?","tags":["circumcision","foreskin","uti","decision","newborn","cribsheet"],"chunks":["The measurable medical effects are small: a modestly lower rate of urinary tract infections in infancy and some reduction in certain infections later, off a low baseline.","It's a low-risk procedure but not zero-risk, and much of the decision is driven by family, cultural, and religious preference.","The evidence doesn't compel it either way — this is squarely a values-plus-small-data call."],"bl":["Medically it's close to a wash — small benefits, small risks.","Because the health effect is minor, family and personal values reasonably drive this one."]},{"topic":"Feeding","q":"Does breastfeeding really matter as much as people say?","tags":["breastfeeding","formula","benefits","iq","obesity","fed is best","cribsheet"],"chunks":["Much of the 'breast is best' research compares mothers who differ in income and education, not just feeding — which inflates the apparent benefits.","The better-supported short-term benefits are modest: fewer digestive infections and possibly fewer rashes/ear infections early on (and real, larger benefits for premature infants).","Big long-term claims — higher IQ, preventing obesity — largely don't hold up once you account for those family differences."],"bl":["Breastfeeding has real but modest short-term benefits; the dramatic long-term claims are weak.","A fed, thriving baby and a functioning parent matter more than the method. Choose what works for your family."]},{"topic":"Feeding","q":"Breastfeeding logistics — supply, pain, and pumping","tags":["breastfeeding","latch","supply","pumping","pain","lactation","cribsheet"],"chunks":["Early breastfeeding is genuinely hard for many; pain and supply worries are common and not a personal failing.","Good support (a lactation consultant, correcting the latch) resolves a lot of early problems.","Pumping output isn't a perfect readout of supply, and 'exclusive pumping' is a legitimate path.","The choice to continue, combo-feed, or switch is a personal cost-benefit call, not a moral test."],"bl":["If you want to breastfeed, get hands-on help early — most early problems are fixable.","There's no evidence you're harming your baby by supplementing or stopping. Weigh it like any other family decision."]},{"topic":"Feeding","q":"Breastfeeding and mom's diet: alcohol and caffeine","tags":["alcohol","caffeine","diet","breastfeeding","pump and dump","wine","coffee","cribsheet"],"chunks":["The amount of alcohol that reaches breast milk is small; an occasional drink is generally considered compatible with breastfeeding (feed or pump around it, and 'pump and dump' isn't required to clear it faster).","Moderate caffeine (a couple of cups of coffee a day) is generally fine; a few very sensitive babies get fussy.","There's little evidence that avoiding common 'gassy' foods broadly helps most babies."],"bl":["An occasional drink and moderate caffeine are generally compatible with breastfeeding.","You don't need to 'pump and dump' just to clear alcohol — time does that."]},{"topic":"Feeding","q":"Pacifiers and 'nipple confusion'","tags":["pacifier","nipple confusion","bottle","breastfeeding","soothing","cribsheet"],"chunks":["Strong evidence that early pacifier or bottle use derails breastfeeding is weak — 'nipple confusion' is more feared than demonstrated.","Pacifiers are separately associated with lower SIDS risk during sleep.","Waiting until breastfeeding is established is a reasonable, low-stakes precaution rather than a hard rule."],"bl":["The 'nipple confusion' worry isn't well supported; pacifiers are fine and are sleep-protective.","If nursing is going well, a pacifier or occasional bottle is low-risk."]},{"topic":"Sleep","q":"Back sleeping and SIDS — how strong is the evidence?","tags":["sids","back to sleep","sleep position","safe sleep","cribsheet"],"chunks":["The evidence that back-sleeping lowers SIDS risk is unusually strong — 'Back to Sleep' campaigns tracked with large drops in SIDS deaths.","This is one of the clearest, most actionable findings in all of early parenting.","A firm, flat, empty sleep surface reinforces the benefit."],"bl":["Put your baby to sleep on their back, every time. This is one of the few things the data is emphatic about.","Pair it with a bare, firm crib for the biggest risk reduction."]},{"topic":"Sleep","q":"Is bed-sharing (co-sleeping) safe?","tags":["bed sharing","co-sleeping","room sharing","sids","safe sleep","cribsheet"],"chunks":["Bed-sharing raises SIDS/suffocation risk on average, and the risk is much higher with smoking, alcohol or sedating drugs, or falling asleep on a sofa or armchair.","Room-sharing (baby on a separate safe surface in your room) gives the closeness without the added risk.","If feeds sometimes end with everyone asleep, a firm adult bed cleared of pillows/soft bedding is far safer than a couch."],"bl":["The safest setup is baby on their own firm, flat surface in your room.","If bed-sharing happens, the couch is the real danger and smoking/alcohol multiply the risk — plan the environment accordingly."]},{"topic":"Sleep","q":"Does sleep training work — and does it harm the baby?","tags":["sleep training","cry it out","ferber","self soothe","attachment","extinction","cribsheet"],"chunks":["Randomized studies show sleep training helps babies fall asleep and stay asleep, and it improves parental mood and lowers maternal depression.","Follow-up studies (including years later) find no evidence of long-term harm to children's attachment, behavior, or emotional health.","'Sleep training' spans many methods — from gentle fading to full extinction and graduated 'check-ins' (Ferber); the research doesn't crown one as clearly best."],"bl":["Sleep training is effective and, by the best evidence, not harmful long-term.","It's a legitimate choice, not a moral one. Pick a method you can be consistent with — or skip it."]},{"topic":"Health","q":"Vaccines — safe? Any link to autism?","tags":["vaccines","vaccination","autism","mmr","schedule","cribsheet"],"chunks":["There is no link between vaccines and autism — the original claim was fraudulent and has been thoroughly debunked by very large studies.","Vaccines are among the best-studied interventions in medicine and prevent serious, sometimes deadly diseases.","The standard schedule reflects a lot of evidence about timing and effectiveness; spacing it out has no demonstrated benefit and leaves kids unprotected longer."],"bl":["Vaccinate on schedule. The evidence for safety and benefit is overwhelming.","The autism link is a myth built on fraud — it should carry no weight in your decision."]},{"topic":"Feeding","q":"When should I introduce allergens like peanut?","tags":["allergens","peanut","egg","allergy","leap","early introduction","solids","cribsheet"],"chunks":["The old advice to delay allergens backfired. The LEAP trial showed early, sustained peanut exposure sharply reduced peanut allergy in high-risk infants (roughly an 80% relative reduction).","Guidelines now favor introducing common allergens early (often around 6 months, alongside first foods), not avoiding them, and keeping them in the diet.","If your baby is high-risk (severe eczema or egg allergy), talk to your pediatrician about how and when to start."],"bl":["Introduce allergens early and keep them in the diet — don't delay.","For a high-risk baby, get a pediatrician's plan, but the direction is 'introduce,' not 'avoid.'"]},{"topic":"Feeding","q":"Baby-led weaning vs purees","tags":["baby led weaning","blw","purees","first foods","choking","gagging","solids","cribsheet"],"chunks":["There's no strong evidence that baby-led weaning beats spoon-fed purees (or vice versa) for long-term eating habits or weight.","Gagging is common and is a normal protective reflex as babies learn to eat; it isn't the same as choking.","Either approach is fine — avoid genuine choking hazards and always supervise."],"bl":["Purees or finger foods — pick what suits your family; neither has a clear evidence edge.","Learn the difference between gagging (normal) and choking, avoid hazards, and supervise."]},{"topic":"Health","q":"Colic and crying — is there a fix?","tags":["colic","crying","gripe water","probiotics","gas","fussy","cribsheet"],"chunks":["Crying that peaks around 6 weeks and fades by ~3–4 months is a normal curve; 'colic' just labels the high end.","Most heavily marketed remedies (many drops, elaborate gas cures) have thin evidence; some data supports a specific probiotic for breastfed babies, with mixed results.","It is not caused by something you're doing wrong, and it passes."],"bl":["Colic is real, normal, and self-limited — most 'cures' aren't well supported.","Soothe, get breaks, and never shake a baby. If you're at the end of your rope, put baby down safely and step away."]},{"topic":"Newborn","q":"Postpartum: taking care of the parent","tags":["postpartum","ppd","depression","anxiety","mental health","recovery","mom","cribsheet"],"chunks":["Postpartum depression and anxiety are common and treatable — they are medical conditions, not weakness.","Screening exists for a reason; persistent sadness, dread, or inability to sleep even when baby sleeps is worth flagging.","Parental wellbeing directly affects the baby, so caring for yourself is caring for them."],"bl":["If something feels persistently off in your mood, tell your doctor — PPD/anxiety are common and very treatable.","Looking after the parent isn't optional; it's part of looking after the baby."]},{"topic":"Parenting","q":"Working vs staying home, and daycare","tags":["daycare","working mom","stay at home","childcare","development","working parents","cribsheet"],"chunks":["On average, children do fine whether a parent works or stays home; measured long-term differences are small and mixed.","Daycare is associated with a few more minor illnesses early on and some social benefits; quality of care matters more than the setting label.","This is a family-fit and finances decision far more than a 'what's best for the baby' verdict."],"bl":["Kids generally thrive either way — there's no clear 'right' answer in the data.","Decide on your family's needs and the quality of care, not guilt."]},{"topic":"Development","q":"Language, talking and reading to your baby","tags":["language","talking","reading","vocabulary","development","screen time","cribsheet"],"chunks":["Talking and reading to your baby — lots of back-and-forth 'conversation' — supports language, and it's the highest-value, lowest-cost thing you can do.","Wide variation in when kids start talking is normal; early or late talking within the normal range isn't destiny.","Fancy 'educational' videos and flashcards don't deliver on the big promises."],"bl":["Talk and read to your baby constantly — that's the evidence-backed 'enrichment.'","Skip the miracle products, and don't panic about normal variation in when talking starts."]},{"topic":"Development","q":"Bilingual homes","tags":["bilingual","two languages","language delay","development","cribsheet"],"chunks":["Raising a child with two languages does not cause lasting language delay or confusion.","Bilingual kids may mix languages early — that's normal and resolves.","Consistent exposure to both languages is what matters."],"bl":["Bilingualism is safe and beneficial — go for it if it fits your family.","Early mixing of languages is normal, not a problem."]},{"topic":"Development","q":"Screen time for babies and toddlers","tags":["screen time","tv","tablet","ipad","development","cribsheet"],"chunks":["For very young infants there's little upside to screens and reasons to keep them minimal; the strongest concern is displacing interaction, sleep, and play.","For toddlers, the evidence that moderate screen time causes harm is weaker and messier than headlines suggest — content and context matter.","It's a moderation-and-tradeoffs issue, not a catastrophe if a show gets you through dinner."],"bl":["Keep screens minimal for infants; for older kids, moderation beats panic.","Watch what it displaces (sleep, play, talking) more than the minutes themselves."]},{"topic":"Development","q":"Physical milestones: sitting, crawling, walking","tags":["milestones","walking","crawling","sitting","motor","development","late walker","cribsheet"],"chunks":["Normal ranges are wide — walking anywhere from about 9 to 17 months is within normal.","Skipping crawling, or crawling oddly, is usually not a concern on its own.","Timing within the normal range doesn't predict later ability; big delays or lost skills are what warrant a check."],"bl":["Milestone timing varies enormously and mostly doesn't predict the future.","Raise real delays or any loss of skills with your pediatrician — otherwise, relax about the exact month."]},{"topic":"Parenting","q":"Potty training — is there a best method or age?","tags":["potty training","toilet training","age","method","cribsheet"],"chunks":["No single method is clearly superior in the evidence; both gradual and intensive approaches work.","Readiness signs matter more than hitting a specific age, and pushing before readiness tends to drag it out.","Most kids get there; the 'right' age is a wide window."],"bl":["Pick a method you can be consistent with and start around readiness, not a magic age.","There's no evidence-backed 'best' technique — consistency wins."]},{"topic":"Parenting","q":"Discipline and tantrums","tags":["discipline","tantrums","time out","behavior","toddler","cribsheet"],"chunks":["Consistency and clear, calm limits matter more than the specific technique.","Tantrums are a normal developmental stage as toddlers gain wants faster than words and self-control.","Approaches like consistent routines and time-outs used calmly have reasonable support; harsh punishment does not."],"bl":["Be consistent and calm — that's the throughline the evidence supports.","Tantrums are normal development, not a discipline failure."]},{"topic":"Health","q":"Growth charts and percentiles","tags":["growth","percentiles","weight","chart","small baby","tracking","cribsheet"],"chunks":["A baby's percentile matters less than a steady, consistent growth curve over time.","Being at the 15th or 90th percentile is not inherently good or bad — tracking their own line is the signal.","A sudden drop across percentiles is what prompts a closer look, not the absolute number."],"bl":["Watch the trend, not the single percentile — steady growth along a baby's own curve is what matters.","A big, sustained fall across the curve is the flag to raise with your doctor."]}];
+
+/* ============================================================
+   AI "Ask" config — FILL THESE IN after deploying (see DEPLOY.md).
+   Until BOTH endpoint and firebase.apiKey are set, the Ask tab just
+   explains it isn't turned on yet; Guides/search work regardless.
+   ============================================================ */
+var AI_CONFIG = {
+  endpoint: "",   // the deployed askBaby URL, e.g. https://us-central1-YOURPROJECT.cloudfunctions.net/askBaby
+  firebase: {     // Firebase console -> Project settings -> your web app -> SDK config
+    apiKey: "", authDomain: "", projectId: "", appId: ""
+  }
+};
 
 /* ---------------- App ---------------- */
 (function(){
@@ -291,6 +336,128 @@ var CRIB = [{"topic":"Newborn","q":"The first hours: skin-to-skin, cord clamping
   });
 
   render();
+
+  /* ---------------- Ask (AI chat) ---------------- */
+  var aiReady = !!(AI_CONFIG.endpoint && AI_CONFIG.firebase && AI_CONFIG.firebase.apiKey);
+  var guidesView=document.getElementById('guidesView'), askView=document.getElementById('askView'),
+      guidesTop=document.getElementById('guidesTop'), tabsEl=document.getElementById('tabs');
+  var mode='guides', chat=[], authUser=null, authObj=null;
+
+  var BASE_SYS = "You are Baby Answers, a warm, concise assistant for parents of a 0–6 month old. "+
+    "Answer ONLY using the SOURCE MATERIAL below (from the free Moms on Call guides and Emily Oster's Cribsheet). "+
+    "If the answer isn't in those sources, say you don't have it in your two sources and suggest asking their pediatrician — don't guess or invent. "+
+    "Be practical and brief: a few sentences or short bullets. Never give medication doses. "+
+    "For anything urgent, or any fever in a baby under 3 months, tell them to call their doctor now. "+
+    "When Moms on Call (routine) and Cribsheet (evidence) differ, you may note both. Add a one-line 'Bottom line' when useful.";
+
+  function retrieve(q, n){
+    var groups=terms(q); if(!groups.length) return [];
+    return items.map(function(it){
+      var hit=0, score=0;
+      groups.forEach(function(g){
+        var inT=g.some(function(v){return it.q.toLowerCase().indexOf(v)>=0;});
+        var inH=g.some(function(v){return it.hay.indexOf(v)>=0;});
+        if(inH){ hit++; score+=inT?3:1; }
+      });
+      return {it:it,hit:hit,score:score};
+    }).filter(function(x){return x.hit>0;})
+      .sort(function(a,b){return (b.hit-a.hit)||(b.score-a.score);})
+      .slice(0,n).map(function(x){return x.it;});
+  }
+  function contextFor(q){
+    var top=retrieve(q,8); if(!top.length) top=items.slice(0,6);
+    return top.map(function(it){
+      return '### '+it.topic+' — '+it.q+' ['+it.label+']\n'+
+        it.body.map(function(b){return '- '+b;}).join('\n')+
+        (it.bl&&it.bl.length?('\nBottom line: '+it.bl.join(' ')):'');
+    }).join('\n\n');
+  }
+
+  function initAuth(){
+    if(authObj || !aiReady || typeof firebase==='undefined') return;
+    try{
+      if(!firebase.apps||!firebase.apps.length) firebase.initializeApp(AI_CONFIG.firebase);
+      authObj=firebase.auth();
+      authObj.onAuthStateChanged(function(u){ authUser=u; if(mode==='ask') renderAsk(); });
+      authObj.getRedirectResult().catch(function(){});
+    }catch(e){ authObj=null; }
+  }
+  function signIn(){
+    if(!authObj) return;
+    var p=new firebase.auth.GoogleAuthProvider(); p.setCustomParameters({prompt:'select_account'});
+    authObj.signInWithRedirect(p);
+  }
+  function signOut(){ if(authObj) authObj.signOut().then(function(){ authUser=null; chat=[]; renderAsk(); }); }
+
+  function setMode(m){
+    mode=m;
+    [].forEach.call(tabsEl.children,function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-mode')===m?'true':'false'); });
+    var ask=(m==='ask');
+    guidesView.hidden=ask; askView.hidden=!ask; guidesTop.style.display=ask?'none':'';
+    if(ask){ initAuth(); renderAsk(); }
+  }
+  tabsEl.addEventListener('click',function(e){ var b=e.target.closest('.tab'); if(b) setMode(b.getAttribute('data-mode')); });
+
+  function renderAsk(){
+    if(!aiReady){
+      askView.innerHTML='<div class="aihint"><b>The Ask box isn’t turned on yet.</b><br>It needs a quick one-time setup (see DEPLOY.md). Meanwhile, the <b>Guides</b> tab search understands plain questions like “how long should they sleep.”</div>';
+      return;
+    }
+    if(typeof firebase==='undefined' || !authObj){
+      askView.innerHTML='<div class="aihint"><b>Couldn’t load sign-in.</b><br>Check your connection and reload. The <b>Guides</b> tab still works offline.</div>';
+      return;
+    }
+    if(!authUser){
+      askView.innerHTML='<div class="aihint"><b>Ask about your baby.</b><br>Sign in (just you and Luke) to chat with an assistant that answers from your Moms on Call &amp; Cribsheet guides.'+
+        '<br><button class="signin" id="signinBtn">Sign in with Google</button></div>';
+      var sb=document.getElementById('signinBtn'); if(sb) sb.addEventListener('click',signIn);
+      return;
+    }
+    askView.innerHTML='<div class="whoami"><span>Signed in as '+esc(authUser.email||'')+'</span><button type="button" id="signout">Sign out</button></div>'+
+      '<div class="thread" id="askThread"></div>'+
+      '<div class="askstatus" id="askStatus"></div>'+
+      '<form class="askbar" id="askForm"><textarea id="askInput" rows="1" placeholder="Ask about sleep, feeding, fever…" aria-label="Ask a question"></textarea><button type="submit" id="askSend">Send</button></form>'+
+      '<p class="disc">Answers come from your two sources only — not medical advice. For anything urgent or a fever under 3 months, call your doctor.</p>';
+    document.getElementById('signout').addEventListener('click',signOut);
+    var form=document.getElementById('askForm'), input=document.getElementById('askInput');
+    form.addEventListener('submit',function(e){ e.preventDefault(); var t=input.value.trim(); if(t){ input.value=''; input.style.height='auto'; ask(t); } });
+    input.addEventListener('input',function(){ input.style.height='auto'; input.style.height=Math.min(input.scrollHeight,120)+'px'; });
+    input.addEventListener('keydown',function(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); if(form.requestSubmit) form.requestSubmit(); else ask(input.value.trim()); } });
+    paintThread();
+    if(!chat.length){ var th=document.getElementById('askThread'); if(th) th.innerHTML='<div class="msg ai">Hi! Ask me anything about your baby’s sleep, feeding, or care and I’ll answer from your Moms on Call and Cribsheet guides.</div>'; }
+  }
+  function paintThread(){
+    var t=document.getElementById('askThread'); if(!t) return;
+    t.innerHTML=chat.map(function(m){
+      if(m.role==='user') return '<div class="msg you">'+esc(m.content)+'</div>';
+      return '<div class="msg ai">'+esc(m.content)+(m.src?'<span class="src">Based on: '+esc(m.src)+'</span>':'')+'</div>';
+    }).join('');
+    t.scrollTop=t.scrollHeight;
+  }
+  function ask(text){
+    chat.push({role:'user',content:text});
+    var top=retrieve(text,8), srcNames=top.slice(0,4).map(function(it){return it.q;}).join('; ');
+    paintThread();
+    var sendBtn=document.getElementById('askSend'); if(sendBtn) sendBtn.disabled=true;
+    var st=document.getElementById('askStatus'); if(st) st.textContent='Thinking…';
+    var sys=BASE_SYS+"\n\nSOURCE MATERIAL:\n"+contextFor(text);
+    var payloadMsgs=chat.map(function(m){return {role:m.role,content:m.content};});
+    authUser.getIdToken().then(function(tok){
+      return fetch(AI_CONFIG.endpoint,{method:'POST',headers:{'content-type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({system:sys,messages:payloadMsgs})});
+    }).then(function(r){ return r.json().then(function(j){ return {ok:r.ok,j:j}; }); })
+    .then(function(res){
+      if(st) st.textContent=''; if(sendBtn) sendBtn.disabled=false;
+      if(!res.ok){ chat.push({role:'assistant',content:'⚠️ '+((res.j&&res.j.error)||'Something went wrong — try again.')}); paintThread(); return; }
+      var ans=((res.j&&res.j.text)||'').trim();
+      chat.push({role:'assistant',content:ans||'(No answer came back — try rephrasing.)', src:ans?srcNames:''});
+      paintThread();
+    }).catch(function(){
+      if(st) st.textContent=''; if(sendBtn) sendBtn.disabled=false;
+      chat.push({role:'assistant',content:'⚠️ Network error — check your connection and try again.'}); paintThread();
+    });
+  }
+
+  window.addEventListener('load',function(){ if(aiReady) initAuth(); });
 
   if('serviceWorker' in navigator){
     window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });

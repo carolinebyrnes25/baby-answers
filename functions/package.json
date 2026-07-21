@@ -1,0 +1,11 @@
+{
+  "name": "baby-answers-functions",
+  "description": "AI Q&A proxy for the Baby Answers app (holds the Gemini key server-side)",
+  "private": true,
+  "engines": { "node": "22" },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^5.1.0"
+  }
+}
