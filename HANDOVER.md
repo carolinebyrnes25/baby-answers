@@ -14,7 +14,7 @@ handouts) and **Cribsheet** (Emily Oster). Built for Caroline & Luke Byrnes.
 ## Current state (all pushed, working)
 - **Single-file app:** `index.html` holds the whole app + all content inline (`var MOC=[…]` and
   `var CRIB=[…]` JSON arrays near the bottom, then the app IIFE).
-- **68 answers** (46 Moms on Call + 22 Cribsheet), grouped into topics: Sleep, Feeding, Routine,
+- **72 answers** (50 Moms on Call + 22 Cribsheet), grouped into topics: Sleep, Feeding, Routine,
   Soothing, Health, Safety, Newborn, Development, Toddler, Parenting.
 - **Unified "Ask" UI** (the user explicitly wanted ONE ask box, not tabs): the header has one ask
   input. Asking → an **AI-synthesized** answer from the guides *once the backend is turned on*;
@@ -23,19 +23,26 @@ handouts) and **Cribsheet** (Emily Oster). Built for Caroline & Luke Byrnes.
 - **Source links:** answers and guide cards link out to the relevant **`sources/*.pdf`** (12 free
   Moms on Call handout PDFs, saved in the repo). Cribsheet is cited by name (it's a book, no PDF).
   Mapping lives in the `GUIDES` array in the app JS (keyword → pdf).
-- **PWA:** `manifest.webmanifest`, `sw.js` (offline; cache is `baby-answers-v8` — bump the version
+- **PWA:** `manifest.webmanifest`, `sw.js` (offline; cache is `baby-answers-v10` — bump the version
   on content changes so installed apps refresh; PDFs are network-only, not cached). Icons in
   `icons/` (generated via headless Chromium — see below).
 
-## The one thing NOT done yet: turn on the AI
-The **Ask** box only *synthesizes* answers once a small backend is deployed. Everything is written:
-- `functions/` (self-contained Firebase Cloud Function `askBaby`, Gemini, **Google-sign-in gated**
-  to Caroline + Luke via an ALLOW list, CORS for the github.io origin), `firebase.json`,
-  `.firebaserc` (placeholder project id), and **`DEPLOY.md`** with the exact one-time steps.
-- After deploy, fill the `AI_CONFIG` block in `index.html` (the `endpoint` URL + Firebase web
-  config) and push. Until then the app shows "AI isn't turned on yet" and falls back to search.
-- This backend is **separate from the finance project** (the user was firm about not mixing them).
-  Do NOT put anything Baby-Answers into `byrnes-finance-dashboard`.
+## The AI is now LIVE (deployed 2026-07-21)
+The **Ask** box synthesizes answers via a deployed Firebase backend.
+- **Firebase project:** `baby-answers` (project #638956060620), created under **cfroehlich14@gmail.com**
+  (Caroline's admin/deploy account). Blaze plan, sharing the same billing account as byrnes-finance —
+  but a **completely separate project** (do NOT mix with `byrnes-finance-dashboard`).
+- **Function:** `askBaby` (Cloud Functions v2, us-central1) at
+  `https://us-central1-baby-answers.cloudfunctions.net/askBaby`. Provider Gemini (Flash, default
+  model), key stored as the `AI_API_KEY` secret (server-side only). Source: `functions/index.js`.
+- **`AI_CONFIG`** in `index.html` is filled with the endpoint + Firebase web config (the web
+  `apiKey` is a public client id — safe to commit; the Gemini key is NOT in the repo).
+- **Access:** Google sign-in enabled; `carolinebyrnes25.github.io` is an authorized domain. Runtime
+  ALLOW list (in `functions/index.js`): `carolinebyrnes25@gmail.com`, `luke.f.byrnes@gmail.com`,
+  `byrnesfam25@gmail.com`. Caroline signs into the app as **carolinebyrnes25** (on the list).
+- **To change who can use it / the model:** edit `ALLOW` (or params) in `functions/index.js`, then
+  `firebase deploy --only functions` from a clone (deploy account = cfroehlich14). `npm install`
+  inside `functions/` first — deps aren't committed.
 
 ## Sourcing & copyright (important)
 - The **free handout PDFs** are public → saved in `sources/` and linked. Fine to keep.
@@ -73,19 +80,18 @@ The **Ask** box only *synthesizes* answers once a small backend is deployed. Eve
   user uploaded the PDFs/photos directly.
 
 ## Open items / ideas
-1. **Deploy the AI backend** (DEPLOY.md) so the Ask box truly synthesizes — the headline next step.
+1. **DONE — AI backend deployed and live** (2026-07-21). See "The AI is now LIVE" above. Next-session
+   idea: sanity-check a real Ask on the live site while signed in as an allow-listed account.
 2. Optional: re-check the feeding numbers — the book lists slightly different amounts in different
    tables (general vs breast vs bottle vs formula). The main "How much/how often" entry uses the
    **General Feeding Guidelines (pp. 77–78)** as authoritative; flagged to the user.
 3. Content is broad now (newborn → toddler). Subtitle was broadened from "0–6 months" to
    "Newborn to toddler."
-4. **PENDING book pages to transcribe + integrate (paraphrased, primary source):** 15 more Moms on
-   Call book photos, `IMG_9135`–`IMG_9149`, arrived at the end and weren't processed. **A fresh
-   session will NOT have them** (they lived only in the previous session's container at
-   `/root/.claude/uploads/…`, which is gone). **Ask Caroline to re-upload IMG_9135–9149** — she has
-   them saved (they're the LAST 15 photos in the "moc-book-photos" zips this session sent her; the
-   final zips of the 7). Then read each (Read renders the JPEGs; rotated but legible), pull the
-   **factual guidance only** (likely the "Typical Days" hour-by-hour schedules + any remaining
-   sections), and add/refine `MOC` entries as paraphrased bullets. They continue in page order from
-   p123 (sleep-time troubleshooting). **Do NOT commit verbatim text or the photos** to this public
-   repo.
+4. **DONE — book pages pp. 125–143 integrated** (2026-07-21). The 15 pending Moms on Call photos
+   (`IMG_9135`–`9149`, re-sent as two zips) covered "Maintaining Good Sleep Habits" (p125), the full
+   "Naptime" section (pp. 127–129), and the "Typical Days" hour-by-hour schedules (pp. 134–143:
+   2–4 wk, 4–8 wk, 8–16 wk, 4–6 mo, plus Crazy Day / Nap tips). Added as **4 new paraphrased MOC
+   entries** (46 → 50): two Routine ("Typical Day" schedules 2 wk–4 mo; Typical Day at 4–6 mo with
+   solids) and two Sleep (Naptime by age; Keeping sleep on track through travel/milestones/illness).
+   No verbatim text or photos committed (photos stayed in the session scratchpad). If more book
+   pages surface later, follow the same paraphrase-only rule.
