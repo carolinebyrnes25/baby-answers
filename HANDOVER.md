@@ -79,13 +79,13 @@ The **Ask** box only *synthesizes* answers once a small backend is deployed. Eve
    **General Feeding Guidelines (pp. 77–78)** as authoritative; flagged to the user.
 3. Content is broad now (newborn → toddler). Subtitle was broadened from "0–6 months" to
    "Newborn to toddler."
-4. **PENDING book pages to transcribe + integrate (paraphrased, primary source):** the user
-   uploaded 15 more Moms on Call book photos at the very end that this session ran out of context
-   to process — `IMG_9135` through `IMG_9149` in
-   `/root/.claude/uploads/a6981e00-8248-5834-a2b2-6b23253cc8e9/` (filenames are `<hash>-IMG_91xx.jpeg`;
-   list them with `ls | grep IMG_914`). Read each (Read tool renders JPEGs; they're rotated but
-   legible), pull the **factual guidance only** (likely the "Typical Days" hour-by-hour schedules
-   and any remaining sections), add/refine `MOC` entries as paraphrased bullets — do NOT commit
-   verbatim text or the photos. These pages continue in order from where p123 (sleep-time
-   troubleshooting) left off. Uploads have survived restarts so far, but if they're gone, ask the
-   user to re-send.
+4. **PENDING book pages to transcribe + integrate (paraphrased, primary source):** 15 more Moms on
+   Call book photos, `IMG_9135`–`IMG_9149`, arrived at the end and weren't processed. **A fresh
+   session will NOT have them** (they lived only in the previous session's container at
+   `/root/.claude/uploads/…`, which is gone). **Ask Caroline to re-upload IMG_9135–9149** — she has
+   them saved (they're the LAST 15 photos in the "moc-book-photos" zips this session sent her; the
+   final zips of the 7). Then read each (Read renders the JPEGs; rotated but legible), pull the
+   **factual guidance only** (likely the "Typical Days" hour-by-hour schedules + any remaining
+   sections), and add/refine `MOC` entries as paraphrased bullets. They continue in page order from
+   p123 (sleep-time troubleshooting). **Do NOT commit verbatim text or the photos** to this public
+   repo.
